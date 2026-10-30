@@ -1,0 +1,50 @@
+name: Extrair e analisar dados do TSE
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/script-urnas-um-candidato]
+    paths:
+      - extrair_presidente.py
+      - analisar.py
+      - .github/workflows/extrair.yml
+
+permissions:
+  contents: write
+
+jobs:
+  extrair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Testar acesso ao TSE
+        run: |
+          mkdir -p logs
+          for u in https://dadosabertos.tse.jus.br/api/3/action/package_show?id=resultados-2026-boletim-de-urna https://cdn.tse.jus.br/; do
+            echo "$u -> $(curl -sS -m 30 -o /dev/null -w '%{http_code}' "$u" 2>&1)"
+          done | tee logs/acesso_tse.txt
+
+      - name: Extrair boletins de urna (2022 e 2026)
+        run: python -u extrair_presidente.py 2>&1 | tee logs/extracao.txt; exit ${PIPESTATUS[0]}
+
+      - name: Analisar
+        if: always()
+        run: |
+          pip install -q pandas numpy
+          python -u analisar.py 2>&1 | tee logs/analise.txt; exit ${PIPESTATUS[0]}
+
+      - name: Gravar resultados no repositório
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add logs dados resultados 2>/dev/null || true
+          git add logs
+          git commit -m "Dados e resultados gerados pelo GitHub Actions" || echo "nada a gravar"
+          git push

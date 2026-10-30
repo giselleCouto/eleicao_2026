@@ -1,0 +1,2 @@
+https://dadosabertos.tse.jus.br/api/3/action/package_show?id=resultados-2026-boletim-de-urna -> 200
+https://cdn.tse.jus.br/ -> 200

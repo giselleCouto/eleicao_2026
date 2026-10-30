@@ -1,0 +1,1 @@
+Nenhum arquivo em ./dados. Rode antes extrair_presidente.py.

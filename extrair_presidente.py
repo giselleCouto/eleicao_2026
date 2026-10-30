@@ -56,7 +56,7 @@ def recursos(ano, dataset_ids, busca, trecho_url):
     """Recursos do portal cujo link contém trecho_url e é da eleição do ano pedido."""
     def ok(r):
         u = r["url"].lower()
-        return trecho_url in u and (f"eleicoes{ano}" in u or f"_{ano}" in u)
+        return trecho_url in u and u.endswith(".zip") and (f"eleicoes{ano}" in u or f"_{ano}" in u)
     for ds in dataset_ids:
         try:
             achados = [r for r in api("package_show", id=ds)["resources"] if ok(r)]

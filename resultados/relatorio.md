@@ -34,8 +34,41 @@ Cada boletim de urna (BU) é impresso e afixado na seção ao fim da votação e
 
 Na coluna do PL: em 2022 o candidato é Jair Bolsonaro; em 2026, Flávio Bolsonaro.
 
+Todos os candidatos do 1º turno (votos contados nos boletins de urna):
+
+| Ano | Candidato | Número | Votos | % dos válidos |
+|---|---|---|---|---|
+| 2026 | Flávio Bolsonaro | 22 | 56.104.503 | 47,03 |
+| 2026 | Lula | 13 | 53.879.538 | 45,16 |
+| 2026 | Escritor Augusto Cury | 70 | 3.448.569 | 2,89 |
+| 2026 | Renan Santos | 14 | 2.675.887 | 2,24 |
+| 2026 | Ronaldo Caiado | 55 | 2.605.148 | 2,18 |
+| 2026 | Zema | 30 | 326.488 | 0,27 |
+| 2026 | Samara | 80 | 122.911 | 0,10 |
+| 2026 | Hertz Dias | 16 | 43.103 | 0,04 |
+| 2026 | Clariana Barao | 27 | 40.043 | 0,03 |
+| 2026 | Edmilson Costa | 21 | 22.693 | 0,02 |
+| 2026 | Veterinário Wilson Grassi | 35 | 16.881 | 0,01 |
+| 2026 | Rui Costa Pimenta | 29 | 15.024 | 0,01 |
+| 2026 | Leonardo Avalanche | 28 | 5.246 | 0,00 |
+| 2022 | Lula | 13 | 57.259.504 | 48,43 |
+| 2022 | Jair Bolsonaro | 22 | 51.072.345 | 43,20 |
+| 2022 | Simone Tebet | 15 | 4.915.423 | 4,16 |
+| 2022 | Ciro Gomes | 12 | 3.599.287 | 3,04 |
+| 2022 | Soraya Thronicke | 44 | 600.955 | 0,51 |
+| 2022 | Felipe D'Avila | 30 | 559.708 | 0,47 |
+| 2022 | Padre Kelmon | 14 | 81.129 | 0,07 |
+| 2022 | Léo Péricles | 80 | 53.519 | 0,05 |
+| 2022 | Sofia Manzano | 21 | 45.620 | 0,04 |
+| 2022 | Vera | 16 | 25.625 | 0,02 |
+| 2022 | Constituinte Eymael | 27 | 16.604 | 0,01 |
+
+Em 2026, os 5.246 votos de Leonardo Avalanche aparecem nos boletins, mas a totalização oficial os conta como nulos (ele renunciou antes da eleição); por isso os percentuais oficiais diferem na segunda casa decimal.
+
 - **2022:** a abstenção foi de 20,95% para 20,58% (-0,36 ponto percentual): 570.424 eleitores a mais votaram no 2º turno. Brancos e nulos variaram +247.790.
 - **2026:** a abstenção foi de 21,08% para 19,22% (-1,86 ponto percentual): 2.960.239 eleitores a mais votaram no 2º turno. Brancos e nulos variaram -1.816.000.
+
+Contexto: segundo dados do TSE divulgados pela imprensa (não recalculados aqui), a abstenção subiu do 1º para o 2º turno em 2014 (de 19,39% para 21,1%) e em 2018 (de 20,33% para 21,3%). Em 2022 caiu pouco; em 2026 caiu bem mais, para o menor nível em um 2º turno presidencial desde 2006.
 
 ### 2.1 Onde a abstenção caiu
 
@@ -100,9 +133,26 @@ As seções são as mesmas nos dois turnos de uma eleição. Se numa seção um 
 | 2026 | Lula | 9.590 | 1,9 | 58.933 | 599 | 1.428 |
 | 2026 | Flávio Bolsonaro | 82.180 | 16,5 | 383.008 | 38.235 | 126.408 |
 
-Em 2026, Flávio teve menos votos no 2º turno em 82.180 seções (383.008 votos): pelo menos esse número de eleitores dele no 1º turno não votou nele no 2º. Em 38.235 dessas seções o comparecimento foi igual ou maior (126.408 votos perdidos), mas isso não prova troca de voto: um eleitor de Flávio pode ter faltado e outro, que tinha faltado no 1º turno, ter ido votar em Lula. Pelos boletins, o mínimo matematicamente comprovável de troca direta é de 79 votos de Flávio para Lula e 123 de Lula para Flávio, no país inteiro: os boletins não conseguem medir troca de voto em nenhuma direção. Ela só poderia ser medida com pesquisa (painel ou boca de urna).
+Em 2026, Flávio teve menos votos no 2º turno em 82.180 seções (16,5% das seções) (383.008 votos): pelo menos esse número de eleitores dele no 1º turno não votou nele no 2º. Em 38.235 dessas seções o comparecimento foi igual ou maior (126.408 votos perdidos, 1,9% da virada), mas isso não prova troca de voto: um eleitor de Flávio pode ter faltado e outro, que tinha faltado no 1º turno, ter ido votar em Lula. Pelos boletins, o mínimo matematicamente comprovável de troca direta é de 79 votos de Flávio para Lula e 123 de Lula para Flávio, no país inteiro: os boletins não conseguem medir troca de voto em nenhuma direção. Ela só poderia ser medida com pesquisa (painel ou boca de urna).
 
 Isso não é novidade de 2026. Em 2022 aconteceu o espelho, e maior: quem perdeu votos em muitas seções foi Lula, o finalista que menos cresceu no 2º turno. É o comportamento comum de quem ganha menos votos novos entre os turnos.
+
+Outros mínimos garantidos pelos boletins (somando, seção a seção, quanto cada grupo encolheu ou cresceu):
+
+| Ano | Grupo | 1º turno | 2º turno | Saíram do grupo, no mínimo | Entraram no grupo, no mínimo |
+|---|---|---|---|---|---|
+| 2026 | Flávio Bolsonaro | 56.104.503 | 59.826.041 | 383.008 | 4.104.546 |
+| 2026 | Lula | 53.879.536 | 64.256.232 | 58.933 | 10.435.629 |
+| 2026 | Brancos | 2.300.798 | 1.430.496 | 1.032.322 | 162.020 |
+| 2026 | Nulos | 3.669.003 | 2.723.305 | 1.244.965 | 299.267 |
+| 2026 | Abstenção | 33.469.144 | 30.508.903 | 3.618.799 | 658.558 |
+| 2022 | Lula | 57.259.504 | 60.345.999 | 458.860 | 3.545.355 |
+| 2022 | Jair Bolsonaro | 51.072.345 | 58.206.354 | 52.955 | 7.186.964 |
+| 2022 | Brancos | 1.964.779 | 1.769.678 | 558.122 | 363.021 |
+| 2022 | Nulos | 3.487.874 | 3.930.765 | 486.730 | 929.621 |
+| 2022 | Abstenção | 32.770.982 | 32.200.558 | 1.655.384 | 1.084.960 |
+
+Por exemplo: em 2026, pelo menos 3.618.799 pessoas que se abstiveram no 1º turno votaram no 2º (10,8% dos abstencionistas). Para onde foram os votos delas, os boletins não dizem.
 
 Atenção: nas seções do Acre e do Amazonas com as maiores quedas de Flávio, o comparecimento despencou no 2º turno (abstenção maior no Norte), então lá a queda é sobretudo de eleitores que faltaram.
 
@@ -123,91 +173,116 @@ Atenção: nas seções do Acre e do Amazonas com as maiores quedas de Flávio, 
 
 ### 4.2 Para onde foi cada grupo do 1º turno (estimativa)
 
-Método: inferência ecológica nas ~500 mil seções (regressão de Goodman com cada fração limitada entre 0% e 100%, ajustada para bater exatamente com os votos contados). Rodamos de duas formas — com o país inteiro e estado por estado — e calculamos um intervalo de 90% por reamostragem de municípios. O valor mostrado é a média das duas formas; entre parênteses, a faixa que cobre as duas e o intervalo. Faixa larga = resultado incerto. Cada linha soma 100%.
+Método: inferência ecológica com todas as seções (regressão de Goodman, ajustada para bater exatamente com os votos contados). O resultado depende das escolhas do modelo, por isso rodamos seis variantes: com o país inteiro, por região e estado por estado; e com duas formas de restrição (cada fração entre 0% e 100%, ou cada linha somando 100%). Conferimos cada variante contra os mínimos garantidos pelos boletins (tabela acima). O valor mostrado é o da variante estado por estado com linhas somando 100%, que respeita esses mínimos; entre parênteses, o menor e o maior valor entre as variantes que também os respeitam. Faixa larga = resultado incerto. Cada linha soma 100%. Os destinos são: Lula, PL, voto em branco, voto nulo e não foi votar.
 
 **2026**
 
 | Grupo no 1º turno | Eleitores | → Lula | → Flávio Bolsonaro | → Brancos | → Nulos | → Abstenção |
 |---|---|---|---|---|---|---|
-| Flávio Bolsonaro | 56.104.503 | 0% | 98% | 0% | 0% | 1% |
+| Flávio Bolsonaro | 56.104.503 | 0% | 99% | 0% | 0% | 1% |
 | Lula | 53.879.536 | 99% | 0% | 0% | 0% | 1% |
-| Escritor Augusto Cury | 3.448.569 | 56% (52–59) | 28% (22–30) | 6% (5–8) | 10% (8–13) | 1% |
-| Renan Santos | 2.675.887 | 36% (29–41) | 44% (36–54) | 4% | 12% (11–13) | 4% (0–7) |
-| Ronaldo Caiado | 2.605.148 | 33% (29–34) | 57% (54–63) | 4% | 5% (3–6) | 1% |
-| Zema | 326.488 | 3% (0–7) | 82% (78–88) | 3% (2–4) | 10% (8–12) | 2% (0–4) |
-| Samara | 122.911 | 78% (68–81) | 9% (6–18) | 2% (1–3) | 10% (8–13) | 1% (0–2) |
-| Hertz Dias | 43.103 | 79% (68–88) | 10% (0–22) | 2% (1–3) | 8% (7–11) | 1% |
-| Clariana Barao | 40.043 | 48% (13–63) | 16% (0–33) | 9% (7–14) | 17% (12–27) | 11% (0–40) |
-| Edmilson Costa | 22.693 | 60% (45–69) | 14% (2–29) | 5% (3–8) | 16% (11–26) | 5% (0–11) |
-| Veterinário Wilson Grassi | 16.881 | 44% (23–54) | 28% (15–49) | 4% (2–7) | 18% (16–24) | 5% (0–10) |
-| Rui Costa Pimenta | 15.024 | 38% (28–47) | 33% (23–49) | 2% (0–4) | 19% (16–22) | 7% (0–15) |
-| Leonardo Avalanche | 5.246 | 43% (0–62) | 20% (0–47) | 9% (5–18) | 12% (4–25) | 15% (0–46) |
-| Brancos | 2.300.798 | 65% (62–67) | 4% (2–8) | 26% | 5% | 1% |
-| Nulos | 3.669.003 | 60% (57–64) | 2% (0–3) | 2% | 36% (34–37) | 0% |
-| Abstenção | 33.469.144 | 10% | 2% (0–3) | 0% | 0% | 88% (86–90) |
+| Escritor Augusto Cury | 3.448.569 | 53% (53–56) | 28% (26–30) | 7% (5–7) | 9% (8–12) | 4% (0–4) |
+| Renan Santos | 2.675.887 | 39% (32–41) | 34% (34–52) | 5% | 12% | 9% (0–9) |
+| Ronaldo Caiado | 2.605.148 | 34% (31–35) | 51% (51–61) | 4% | 7% (4–8) | 4% (0–4) |
+| Zema | 326.488 | 6% (0–6) | 81% (78–86) | 1% (1–4) | 8% (4–10) | 4% (0–4) |
+| Samara | 122.911 | 91% (74–96) | 6% (3–13) | 0% (0–2) | 1% (1–11) | 1% (0–2) |
+| Hertz Dias | 43.103 | 91% (75–94) | 6% (2–14) | 0% | 1% (1–9) | 1% |
+| Clariana Barao | 40.043 | 65% (32–65) | 15% (8–17) | 5% (5–11) | 10% (10–21) | 5% (4–19) |
+| Edmilson Costa | 22.693 | 66% (56–66) | 9% (6–17) | 3% (1–6) | 10% (10–21) | 12% (0–17) |
+| Veterinário Wilson Grassi | 16.881 | 55% (34–59) | 15% (9–41) | 3% | 15% (15–21) | 12% (0–12) |
+| Rui Costa Pimenta | 15.024 | 39% (37–47) | 26% (21–43) | 2% (0–3) | 18% (18–21) | 15% (0–15) |
+| Leonardo Avalanche | 5.246 | 56% (31–56) | 22% (12–24) | 3% (3–12) | 6% (6–14) | 13% (12–25) |
+| Brancos | 2.300.798 | 68% (64–72) | 2% (1–5) | 25% (24–26) | 4% (2–6) | 2% (0–2) |
+| Nulos | 3.669.003 | 58% (57–63) | 2% (0–4) | 2% | 37% | 1% |
+| Abstenção | 33.469.144 | 10% | 2% (0–3) | 1% | 1% | 87% (86–89) |
 
 **2022**
 
 | Grupo no 1º turno | Eleitores | → Lula | → Jair Bolsonaro | → Brancos | → Nulos | → Abstenção |
 |---|---|---|---|---|---|---|
-| Lula | 57.259.504 | 97% | 0% | 0% | 1% | 2% |
-| Jair Bolsonaro | 51.072.345 | 0% | 100% | 0% | 0% | 0% |
-| Simone Tebet | 4.915.423 | 33% (19–39) | 48% (44–61) | 8% (7–9) | 11% (8–13) | 1% (0–2) |
-| Ciro Gomes | 3.599.287 | 48% (39–61) | 37% (28–42) | 7% (6–8) | 7% (4–9) | 2% (0–3) |
-| Soraya Thronicke | 600.955 | 11% (0–22) | 57% (51–68) | 8% (7–10) | 22% (16–37) | 2% (0–4) |
-| Felipe D'Avila | 559.708 | 21% (16–25) | 66% (60–79) | 5% (5–7) | 5% (0–10) | 2% (0–3) |
-| Padre Kelmon | 81.129 | 7% (0–15) | 76% (64–96) | 4% (1–5) | 10% (0–16) | 2% (0–10) |
-| Léo Péricles | 53.519 | 67% (55–76) | 10% (0–24) | 6% (4–11) | 14% (9–21) | 4% (0–7) |
-| Sofia Manzano | 45.620 | 78% (73–88) | 3% (0–7) | 4% (3–7) | 10% (7–15) | 5% (0–9) |
-| Vera | 25.625 | 65% (54–85) | 14% (0–22) | 7% (4–11) | 11% (0–17) | 3% (0–8) |
-| Constituinte Eymael | 16.604 | 12% (0–21) | 52% (43–68) | 13% (10–18) | 20% (11–23) | 4% (0–8) |
-| Brancos | 1.964.779 | 3% (0–6) | 48% (43–54) | 34% | 14% (12–16) | 2% (0–3) |
-| Nulos | 3.487.874 | 28% (22–36) | 13% (2–21) | 2% | 57% (54–61) | 0% |
-| Abstenção | 32.770.982 | 1% (0–2) | 4% | 0% | 0% | 94% (93–96) |
+| Lula | 57.259.504 | 96% | 0% | 0% | 1% | 2% |
+| Jair Bolsonaro | 51.072.345 | 0% | 99% | 0% | 0% | 0% |
+| Simone Tebet | 4.915.423 | 39% (35–39) | 44% | 7% | 10% (10–14) | 1% |
+| Ciro Gomes | 3.599.287 | 39% | 42% | 7% | 9% | 3% (3–5) |
+| Soraya Thronicke | 600.955 | 22% (12–22) | 51% | 7% | 16% (16–22) | 3% (3–7) |
+| Felipe D'Avila | 559.708 | 21% (21–23) | 60% (60–68) | 5% | 10% (5–10) | 3% (0–3) |
+| Padre Kelmon | 81.129 | 15% (3–15) | 64% (64–69) | 5% (3–5) | 16% (10–16) | 0% (0–14) |
+| Léo Péricles | 53.519 | 62% (58–62) | 14% (9–14) | 4% | 12% (12–15) | 7% (7–14) |
+| Sofia Manzano | 45.620 | 73% (69–73) | 7% | 3% | 8% | 9% |
+| Vera | 25.625 | 54% (54–61) | 19% (17–19) | 6% | 14% (11–14) | 7% |
+| Constituinte Eymael | 16.604 | 17% (14–17) | 43% | 10% | 21% | 8% |
+| Brancos | 1.964.779 | 6% (2–6) | 43% | 34% | 14% (14–19) | 3% |
+| Nulos | 3.487.874 | 22% (19–22) | 21% | 2% | 54% (54–56) | 0% |
+| Abstenção | 32.770.982 | 2% | 4% | 0% | 0% | 93% |
 
 ### 4.3 Quanto cada grupo pesou na mudança da diferença
 
-Votos para Lula menos votos para o PL vindos de cada grupo do 1º turno. Para os próprios finalistas, é o efeito de eleitores que deixaram de votar neles. A soma de cada coluna é a variação real da diferença.
+Efeito na diferença Lula − PL (não é número de pessoas): votos para Lula menos votos para o PL vindos de cada grupo do 1º turno. Nos próprios finalistas, é o efeito de eleitores que não repetiram o voto. A coluna 'Central' soma exatamente a variação real da diferença; a faixa mostra o quanto cada item muda entre as variantes que respeitam os mínimos dos boletins. A divisão entre abstenção, brancos e nulos é a parte menos precisa: os três andam juntos entre as seções. A soma dos três é robusta.
 
 **2026** (variação real da diferença: +6.655.156 votos)
 
 | Grupo no 1º turno | Central | Faixa |
 |---|---|---|
-| Flávio Bolsonaro | +0,88 mi | +0,71 mi a +1,04 mi |
-| Lula | -0,63 mi | -0,83 mi a -0,43 mi |
-| Escritor Augusto Cury | +0,97 mi | +0,90 mi a +1,03 mi |
-| Renan Santos | -0,21 mi | -0,53 mi a +0,11 mi |
-| Ronaldo Caiado | -0,64 mi | -0,77 mi a -0,52 mi |
-| Zema | -0,26 mi | -0,28 mi a -0,23 mi |
-| Samara | +0,08 mi | +0,08 mi a +0,09 mi |
-| Hertz Dias | +0,03 mi | +0,03 mi a +0,03 mi |
-| Clariana Barao | +0,01 mi | +0,01 mi a +0,02 mi |
+| Flávio Bolsonaro | +0,79 mi | +0,63 mi a +1,11 mi |
+| Lula | -0,61 mi | -0,83 mi a -0,43 mi |
+| Escritor Augusto Cury | +0,88 mi | +0,86 mi a +1,03 mi |
+| Renan Santos | +0,13 mi | -0,53 mi a +0,13 mi |
+| Ronaldo Caiado | -0,44 mi | -0,77 mi a -0,44 mi |
+| Zema | -0,25 mi | -0,28 mi a -0,23 mi |
+| Samara | +0,10 mi | +0,08 mi a +0,11 mi |
+| Hertz Dias | +0,04 mi | +0,03 mi a +0,04 mi |
+| Clariana Barao | +0,02 mi | +0,01 mi a +0,02 mi |
 | Edmilson Costa | +0,01 mi | +0,01 mi a +0,01 mi |
-| Veterinário Wilson Grassi | +0,00 mi | -0,00 mi a +0,01 mi |
+| Veterinário Wilson Grassi | +0,01 mi | -0,00 mi a +0,01 mi |
 | Rui Costa Pimenta | +0,00 mi | -0,00 mi a +0,00 mi |
 | Leonardo Avalanche | +0,00 mi | +0,00 mi a +0,00 mi |
-| Brancos | +1,40 mi | +1,35 mi a +1,44 mi |
-| Nulos | +2,13 mi | +1,96 mi a +2,30 mi |
-| Abstenção | +2,85 mi | +2,54 mi a +3,16 mi |
+| Brancos | +1,51 mi | +1,35 mi a +1,63 mi |
+| Nulos | +2,05 mi | +1,96 mi a +2,30 mi |
+| Abstenção | +2,40 mi | +2,40 mi a +3,16 mi |
+
+Soma de abstenção, brancos e nulos: +5,96 mi (faixa +5,95 mi a +6,81 mi).
+
+Em 2022, só duas das seis variantes respeitam os mínimos dos boletins, então as faixas desse ano são mais estreitas do que a incerteza real.
 
 **2022** (variação real da diferença: -4.047.514 votos)
 
 | Grupo no 1º turno | Central | Faixa |
 |---|---|---|
-| Lula | -1,91 mi | -2,15 mi a -1,66 mi |
-| Jair Bolsonaro | +0,17 mi | +0,05 mi a +0,30 mi |
-| Simone Tebet | -0,75 mi | -1,26 mi a -0,25 mi |
-| Ciro Gomes | +0,39 mi | -0,14 mi a +0,92 mi |
-| Soraya Thronicke | -0,28 mi | -0,37 mi a -0,18 mi |
-| Felipe D'Avila | -0,25 mi | -0,28 mi a -0,22 mi |
-| Padre Kelmon | -0,06 mi | -0,07 mi a -0,04 mi |
+| Lula | -2,15 mi | -2,15 mi a -1,63 mi |
+| Jair Bolsonaro | +0,30 mi | +0,22 mi a +0,30 mi |
+| Simone Tebet | -0,25 mi | -0,40 mi a -0,25 mi |
+| Ciro Gomes | -0,14 mi | -0,14 mi a -0,02 mi |
+| Soraya Thronicke | -0,18 mi | -0,24 mi a -0,18 mi |
+| Felipe D'Avila | -0,22 mi | -0,25 mi a -0,22 mi |
+| Padre Kelmon | -0,04 mi | -0,05 mi a -0,04 mi |
 | Léo Péricles | +0,03 mi | +0,03 mi a +0,03 mi |
-| Sofia Manzano | +0,03 mi | +0,03 mi a +0,04 mi |
-| Vera | +0,01 mi | +0,01 mi a +0,02 mi |
-| Constituinte Eymael | -0,01 mi | -0,01 mi a -0,00 mi |
-| Brancos | -0,88 mi | -1,03 mi a -0,73 mi |
-| Nulos | +0,50 mi | +0,02 mi a +0,98 mi |
-| Abstenção | -1,07 mi | -1,40 mi a -0,73 mi |
+| Sofia Manzano | +0,03 mi | +0,03 mi a +0,03 mi |
+| Vera | +0,01 mi | +0,01 mi a +0,01 mi |
+| Constituinte Eymael | -0,00 mi | -0,00 mi a -0,00 mi |
+| Brancos | -0,73 mi | -0,80 mi a -0,73 mi |
+| Nulos | +0,02 mi | -0,14 mi a +0,02 mi |
+| Abstenção | -0,73 mi | -0,80 mi a -0,73 mi |
+
+Soma de abstenção, brancos e nulos: -1,43 mi (faixa -1,74 mi a -1,43 mi).
+
+### 4.4 O que mudou em relação à tabela anterior
+
+Uma versão anterior desta análise mostrava só os quatro maiores saldos a favor de Lula em 2026, vindos de um modelo mais agregado (todos os eliminados juntos, brancos e nulos juntos). Esses quatro somavam 7,67 mi, mais do que a virada real, porque os grupos que favoreceram Flávio ficaram de fora. Todos os votos de todos os candidatos foram contados pelo TSE; a omissão foi só daquela tabela-resumo. A versão atual separa cada candidato e brancos de nulos, e respeita os mínimos garantidos pelos boletins:
+
+| Grupo | Tabela anterior | Agora (central) | Faixa entre métodos |
+|---|---|---|---|
+| Brancos e nulos | +2,99 mi | +3,56 mi | +3,41 mi a +3,74 mi |
+| Abstenção | +1,94 mi | +2,40 mi | +2,40 mi a +3,16 mi |
+| Eleitores de Flávio que não repetiram o voto | +1,59 mi (bruto) | +0,79 mi | +0,63 mi a +1,11 mi |
+| Eleitores de Lula que não repetiram o voto | não mostrado | -0,61 mi | -0,83 mi a -0,43 mi |
+| Augusto Cury | +1,15 mi | +0,88 mi | +0,86 mi a +1,03 mi |
+| Renan Santos | não mostrado | +0,13 mi | -0,53 mi a +0,13 mi |
+| Ronaldo Caiado | não mostrado | -0,44 mi | -0,77 mi a -0,44 mi |
+| Zema | não mostrado | -0,25 mi | -0,28 mi a -0,23 mi |
+| Demais candidatos | não mostrado | +0,19 mi | +0,12 mi a +0,20 mi |
+| Total | +7,67 mi | +6,66 mi |  |
+
+O '+1,59 mi' anterior era bruto (não descontava os eleitores de Lula que também não repetiram o voto) e vinha do modelo agregado. Hoje, o efeito líquido das perdas dos dois finalistas é de +0,19 mi (faixa +0,15 mi a +0,28 mi).
 
 ## 5. De 2022 para 2026 (estimativa frágil)
 
@@ -217,15 +292,15 @@ Entre eleições diferentes as seções mudam, então a comparação é por muni
 
 | Grupo no 1º turno de 2022 | Eleitores | → Flávio Bolsonaro | → Lula | → Escritor Augusto Cury | → Renan Santos | → Ronaldo Caiado | → Demais candidatos | → Brancos | → Nulos | → Abstenção |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Lula | 57.259.491 | 4% (3–7) | 88% (85–93) | 1% | 0% | 0% | 0% | 1% | 1% | 4% (0–8) |
-| Jair Bolsonaro | 51.072.329 | 96% | 0% | 1% | 1% | 1% | 0% | 0% | 0% | 1% |
+| Lula | 57.259.491 | 3% (2–6) | 84% (84–92) | 1% | 1% | 1% | 0% | 1% | 1% | 8% (0–8) |
+| Jair Bolsonaro | 51.072.329 | 96% (95–99) | 0% | 1% | 1% | 0% | 0% | 0% | 0% | 2% |
 
 **2º turno de 2022 → 2º turno de 2026** (só os finalistas, que têm faixas estreitas)
 
 | Grupo no 2º turno de 2022 | Eleitores | → Lula | → Flávio Bolsonaro | → Brancos | → Nulos | → Abstenção |
 |---|---|---|---|---|---|---|
-| Lula | 60.345.985 | 97% (94–99) | 1% | 0% | 0% | 2% (0–4) |
-| Jair Bolsonaro | 58.206.344 | 1% | 95% (94–96) | 1% | 1% | 3% |
+| Lula | 60.345.985 | 93% (92–99) | 2% | 0% | 1% | 4% (0–5) |
+| Jair Bolsonaro | 58.206.344 | 1% | 94% | 1% | 1% | 3% |
 
 ## 6. Seções em que apenas um candidato recebeu votos
 
@@ -243,6 +318,8 @@ A classificação do local é automática, pelo nome e endereço no cadastro do 
 | 2026 – 2º turno | 110 | 0,022 | 150 | 327 | 95 | 15.156 | 4.430.191 |
 
 ### 6.1 Para cada candidato
+
+As seções com 100% para o PL também ficam em comunidades rurais pequenas: em 2026, no interior do Pará e em colônias rurais do Rio Grande do Sul (Arroio do Padre e Cândido Godói, de colonização alemã). Em 2022, duas delas eram de Caracas votando em Bogotá, com pouquíssimos eleitores presentes.
 
 | Eleição | Candidato | Seções | % das seções do país | Votos nessas seções | % dos votos do candidato | Aptos, mediana | Compareceram, mediana | Em aldeias ou comunidades rurais |
 |---|---|---|---|---|---|---|---|---|

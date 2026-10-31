@@ -196,6 +196,21 @@ md(tabela(res[["Eleição", "Lula votos", "Lula % válidos", "PL votos", "PL % v
 md()
 md("Na coluna do PL: em 2022 o candidato é Jair Bolsonaro; em 2026, Flávio Bolsonaro.")
 md()
+md("Todos os candidatos do 1º turno (votos contados nos boletins de urna):")
+md()
+cand_rows = []
+for ano in ("2026", "2022"):
+    df, nomes, vc = D[(ano, 1)]
+    tot = df[vc].sum().sort_values(ascending=False)
+    for c, v in tot.items():
+        nome = {LULA: "Lula", PL: NOME_PL[ano]}.get(c, nomes[c])
+        cand_rows.append({"Ano": ano, "Candidato": nome, "Número": c[2:], "Votos": int(v),
+                          "% dos válidos": pct(v, df.VALIDOS.sum())})
+md(tabela(pd.DataFrame(cand_rows), formatos={"% dos válidos": "{:.2f}"}))
+md()
+md("Em 2026, os 5.246 votos de Leonardo Avalanche aparecem nos boletins, mas a totalização oficial os conta "
+   "como nulos (ele renunciou antes da eleição); por isso os percentuais oficiais diferem na segunda casa decimal.")
+md()
 VAR = {}
 for ano in ("2022", "2026"):
     r1 = res[res["Eleição"] == f"{ano} – 1º turno"].iloc[0]
@@ -210,6 +225,10 @@ for ano in ("2022", "2026"):
        f"Brancos e nulos variaram {br(v['bn'], '{:+,}')}.")
 md()
 
+md("Contexto: segundo dados do TSE divulgados pela imprensa (não recalculados aqui), a abstenção subiu do "
+   "1º para o 2º turno em 2014 (de 19,39% para 21,1%) e em 2018 (de 20,33% para 21,3%). Em 2022 caiu pouco; "
+   "em 2026 caiu bem mais, para o menor nível em um 2º turno presidencial desde 2006.")
+md()
 md("### 2.1 Onde a abstenção caiu")
 md()
 reg_rows = []
@@ -307,16 +326,13 @@ TR = {ano: tr.entre_turnos(ano) for ano in ("2022", "2026")}
 
 
 def resumo_transf(t):
-    """Uma linha por grupo de origem: valor central e faixa para cada destino."""
+    """Uma linha por grupo de origem: valor central e faixa (entre as seis variantes) para cada destino."""
     linhas = []
     for o, g in t.groupby("origem", sort=False):
         g = g.set_index("destino")
         linha = {"Grupo no 1º turno": o, "Eleitores": int(g.eleitores_origem.iloc[0])}
         for dst in g.index:
-            c = (g.loc[dst, "pct"] + g.loc[dst, "pct_por_estado"]) / 2
-            lo = min(g.loc[dst, "ic90_min"], g.loc[dst, "pct_por_estado"], g.loc[dst, "pct"])
-            hi = max(g.loc[dst, "ic90_max"], g.loc[dst, "pct_por_estado"], g.loc[dst, "pct"])
-            linha[dst] = (c, lo, hi)
+            linha[dst] = (g.loc[dst, "pct"], g.loc[dst, "pct_min"], g.loc[dst, "pct_max"])
         linhas.append(linha)
     return linhas
 
@@ -329,18 +345,29 @@ def celula(v):
 
 
 def efeitos(t, ano):
-    """Efeito de cada grupo na diferença Lula − PL, pelas duas variantes do modelo."""
+    """Efeito de cada grupo na diferença Lula − PL (votos para Lula menos votos para o PL vindos do
+    grupo; nos finalistas, descontando os próprios votos do 1º turno). A soma é a variação real."""
     pl = NOME_PL[ano]
+    variantes = [c for c in t.columns if c.startswith("pct[")]
     out = []
     for o, g in t.groupby("origem", sort=False):
         n = g.eleitores_origem.iloc[0]
         g = g.set_index("destino")
-        vals = []
-        for col in ("pct", "pct_por_estado"):
-            L, P = g.loc["Lula", col] * n, g.loc[pl, col] * n
-            vals.append(L - n if o == "Lula" else n - P if o == pl else L - P)
-        out.append({"Grupo no 1º turno": o, "nacional": vals[0], "por_estado": vals[1]})
+
+        def ef(col):
+            e = (g.loc["Lula", col] - g.loc[pl, col]) * n
+            return e - n if o == "Lula" else e + n if o == pl else e
+        vals = {c: ef(c) for c in variantes}
+        out.append({"Grupo no 1º turno": o, "central": ef("pct"), "min": min(vals.values()), "max": max(vals.values()), **vals})
     return pd.DataFrame(out)
+
+
+def soma_faixa(e, grupos_):
+    """Soma do efeito de vários grupos: central e faixa calculada variante por variante."""
+    x = e[e["Grupo no 1º turno"].isin(grupos_)]
+    var = [c for c in e.columns if c.startswith("pct[")]
+    tot = [x[c].sum() for c in var]
+    return x.central.sum(), min(tot), max(tot)
 
 
 md("## 4. Do 1º para o 2º turno: para onde foi cada eleitor")
@@ -399,9 +426,11 @@ votos_estaveis = int(-dPL[estavel].sum())
 md(tabela(lim_tab, formatos={"% das seções": "{:.1f}"}))
 md()
 md(f"Em 2026, Flávio teve menos votos no 2º turno em {br(int((dPL < 0).sum()), '{:,}')} seções "
+   f"({br(pct(int((dPL < 0).sum()), len(j26)), '{:.1f}')}% das seções) "
    f"({br(int(-dPL[dPL < 0].sum()), '{:,}')} votos): pelo menos esse número de eleitores dele no 1º turno não "
    f"votou nele no 2º. Em {br(int(estavel.sum()), '{:,}')} dessas seções o comparecimento foi igual ou maior "
-   f"({br(votos_estaveis, '{:,}')} votos perdidos), mas isso não prova troca de voto: um eleitor de Flávio "
+   f"({br(votos_estaveis, '{:,}')} votos perdidos, {br(pct(votos_estaveis, VAR['2026']['m2'] - VAR['2026']['m1']), '{:.1f}')}% "
+   "da virada), mas isso não prova troca de voto: um eleitor de Flávio "
    "pode ter faltado e outro, que tinha faltado no 1º turno, ter ido votar em Lula. Pelos boletins, o mínimo "
    f"matematicamente comprovável de troca direta é de {br(estrito(PL, LULA), '{:,}')} votos de Flávio para Lula "
    f"e {br(estrito(LULA, PL), '{:,}')} de Lula para Flávio, no país inteiro: os boletins não conseguem medir "
@@ -410,6 +439,21 @@ md()
 md("Isso não é novidade de 2026. Em 2022 aconteceu o espelho, e maior: quem perdeu votos em muitas seções "
    "foi Lula, o finalista que menos cresceu no 2º turno. É o comportamento comum de quem ganha menos votos "
    "novos entre os turnos.")
+md()
+md("Outros mínimos garantidos pelos boletins (somando, seção a seção, quanto cada grupo encolheu ou cresceu):")
+md()
+pis = []
+for ano in ("2026", "2022"):
+    p = pd.read_csv(os.path.join(OUT, f"pisos_{ano}.csv"), sep=";", decimal=",")
+    for r in p.itertuples():
+        pis.append({"Ano": ano, "Grupo": r.grupo, "1º turno": int(r.no_1o_turno), "2º turno": int(r.no_2o_turno),
+                    "Saíram do grupo, no mínimo": int(r.saiu_no_minimo), "Entraram no grupo, no mínimo": int(r.entrou_no_minimo)})
+md(tabela(pd.DataFrame(pis)))
+md()
+p26 = pd.read_csv(os.path.join(OUT, "pisos_2026.csv"), sep=";", decimal=",").set_index("grupo")
+md(f"Por exemplo: em 2026, pelo menos {br(int(p26.loc['Abstenção', 'saiu_no_minimo']), '{:,}')} pessoas que se "
+   f"abstiveram no 1º turno votaram no 2º ({br(pct(p26.loc['Abstenção', 'saiu_no_minimo'], p26.loc['Abstenção', 'no_1o_turno']), '{:.1f}')}% "
+   "dos abstencionistas). Para onde foram os votos delas, os boletins não dizem.")
 md()
 md("Atenção: nas seções do Acre e do Amazonas com as maiores quedas de Flávio, o comparecimento despencou "
    "no 2º turno (abstenção maior no Norte), então lá a queda é sobretudo de eleitores que faltaram.")
@@ -435,11 +479,14 @@ md()
 
 md("### 4.2 Para onde foi cada grupo do 1º turno (estimativa)")
 md()
-md("Método: inferência ecológica nas ~500 mil seções (regressão de Goodman com cada fração limitada entre "
-   "0% e 100%, ajustada para bater exatamente com os votos contados). Rodamos de duas formas — com o país "
-   "inteiro e estado por estado — e calculamos um intervalo de 90% por reamostragem de municípios. O valor "
-   "mostrado é a média das duas formas; entre parênteses, a faixa que cobre as duas e o intervalo. Faixa "
-   "larga = resultado incerto. Cada linha soma 100%.")
+md("Método: inferência ecológica com todas as seções (regressão de Goodman, ajustada para bater exatamente "
+   "com os votos contados). O resultado depende das escolhas do modelo, por isso rodamos seis variantes: "
+   "com o país inteiro, por região e estado por estado; e com duas formas de restrição (cada fração entre "
+   "0% e 100%, ou cada linha somando 100%). Conferimos cada variante contra os mínimos garantidos pelos "
+   "boletins (tabela acima). O valor mostrado é o da variante estado por estado com linhas somando 100%, "
+   "que respeita esses mínimos; entre parênteses, o menor e o maior valor entre as variantes que também os respeitam. Faixa larga = "
+   "resultado incerto. Cada linha soma 100%. Os destinos são: Lula, PL, voto em branco, voto nulo e não "
+   "foi votar.")
 md()
 for ano in ("2026", "2022"):
     linhas = resumo_transf(TR[ano])
@@ -453,18 +500,60 @@ for ano in ("2026", "2022"):
 
 md("### 4.3 Quanto cada grupo pesou na mudança da diferença")
 md()
-md("Votos para Lula menos votos para o PL vindos de cada grupo do 1º turno. Para os próprios finalistas, "
-   "é o efeito de eleitores que deixaram de votar neles. A soma de cada coluna é a variação real da diferença.")
+md("Efeito na diferença Lula − PL (não é número de pessoas): votos para Lula menos votos para o PL vindos de "
+   "cada grupo do 1º turno. Nos próprios finalistas, é o efeito de eleitores que não repetiram o voto. A coluna "
+   "'Central' soma exatamente a variação real da diferença; a faixa mostra o quanto cada item muda entre as "
+   "variantes que respeitam os mínimos dos boletins. A divisão entre abstenção, brancos e nulos é a parte menos precisa: os três andam juntos "
+   "entre as seções. A soma dos três é robusta.")
 md()
 for ano in ("2026", "2022"):
     e = efeitos(TR[ano], ano)
-    e["Faixa"] = [f"{mi(min(a, b))} a {mi(max(a, b))}" for a, b in zip(e.nacional, e.por_estado)]
-    e["Central"] = [mi((a + b) / 2) for a, b in zip(e.nacional, e.por_estado)]
-    e.to_csv(os.path.join(OUT, f"efeito_na_diferenca_{ano}.csv"), sep=";", index=False, decimal=",")
+    e["Faixa"] = [f"{mi(a)} a {mi(b)}" for a, b in zip(e["min"], e["max"])]
+    e["Central"] = [mi(c) for c in e.central]
+    e[["Grupo no 1º turno", "central", "min", "max"]].to_csv(os.path.join(OUT, f"efeito_na_diferenca_{ano}.csv"), sep=";", index=False, decimal=",")
+    if ano == "2022":
+        md("Em 2022, só duas das seis variantes respeitam os mínimos dos boletins, então as faixas desse ano são "
+           "mais estreitas do que a incerteza real.")
+        md()
     md(f"**{ano}** (variação real da diferença: {br(VAR[ano]['m2'] - VAR[ano]['m1'], '{:+,}')} votos)")
     md()
     md(tabela(e[["Grupo no 1º turno", "Central", "Faixa"]]))
     md()
+    c3, lo3, hi3 = soma_faixa(e, ["Brancos", "Nulos", "Abstenção"])
+    md(f"Soma de abstenção, brancos e nulos: {mi(c3)} (faixa {mi(lo3)} a {mi(hi3)}).")
+    md()
+
+md("### 4.4 O que mudou em relação à tabela anterior")
+md()
+md("Uma versão anterior desta análise mostrava só os quatro maiores saldos a favor de Lula em 2026, vindos de "
+   "um modelo mais agregado (todos os eliminados juntos, brancos e nulos juntos). Esses quatro somavam 7,67 mi, "
+   "mais do que a virada real, porque os grupos que favoreceram Flávio ficaram de fora. Todos os votos de "
+   "todos os candidatos foram contados pelo TSE; a omissão foi só daquela tabela-resumo. A versão atual separa "
+   "cada candidato e brancos de nulos, e respeita os mínimos garantidos pelos boletins:")
+md()
+e26 = efeitos(TR["2026"], "2026")
+nomeados = ["Lula", "Flávio Bolsonaro", "Escritor Augusto Cury", "Renan Santos", "Ronaldo Caiado", "Zema",
+            "Brancos", "Nulos", "Abstenção"]
+demais = [g for g in e26["Grupo no 1º turno"] if g not in nomeados]
+conc = [("Brancos e nulos", "+2,99 mi", ["Brancos", "Nulos"]), ("Abstenção", "+1,94 mi", ["Abstenção"]),
+        ("Eleitores de Flávio que não repetiram o voto", "+1,59 mi (bruto)", ["Flávio Bolsonaro"]),
+        ("Eleitores de Lula que não repetiram o voto", "não mostrado", ["Lula"]),
+        ("Augusto Cury", "+1,15 mi", ["Escritor Augusto Cury"]), ("Renan Santos", "não mostrado", ["Renan Santos"]),
+        ("Ronaldo Caiado", "não mostrado", ["Ronaldo Caiado"]), ("Zema", "não mostrado", ["Zema"]),
+        ("Demais candidatos", "não mostrado", demais)]
+linhas_c = []
+for g, ant, gs in conc:
+    c, lo, hi = soma_faixa(e26, gs)
+    linhas_c.append({"Grupo": g, "Tabela anterior": ant, "Agora (central)": mi(c), "Faixa entre métodos": f"{mi(lo)} a {mi(hi)}"})
+linhas_c.append({"Grupo": "Total", "Tabela anterior": "+7,67 mi", "Agora (central)": mi(e26.central.sum()), "Faixa entre métodos": ""})
+pd.DataFrame(linhas_c).to_csv(os.path.join(OUT, "conciliacao_tabela_anterior.csv"), sep=";", index=False)
+md(tabela(pd.DataFrame(linhas_c)))
+md()
+cf, lof, hif = soma_faixa(e26, ["Lula", "Flávio Bolsonaro"])
+md(f"O '+1,59 mi' anterior era bruto (não descontava os eleitores de Lula que também não repetiram o voto) e "
+   f"vinha do modelo agregado. Hoje, o efeito líquido das perdas dos dois finalistas é de {mi(cf)} "
+   f"(faixa {mi(lof)} a {mi(hif)}).")
+md()
 
 # ---------------------------------------------------------------- 5. entre eleições
 print("estimando transferências entre eleições...", flush=True)
@@ -562,6 +651,10 @@ md(tabela(pd.DataFrame(resumo), formatos={"% das seções": "{:.3f}", "Aptos, me
                                           "% em aldeias, assentamentos, quilombos ou comunidades rurais": "{:.0f}"}))
 md()
 md("### 6.1 Para cada candidato")
+md()
+md("As seções com 100% para o PL também ficam em comunidades rurais pequenas: em 2026, no interior do Pará "
+   "e em colônias rurais do Rio Grande do Sul (Arroio do Padre e Cândido Godói, de colonização alemã). Em 2022, "
+   "duas delas eram de Caracas votando em Bogotá, com pouquíssimos eleitores presentes.")
 md()
 md(tabela(pd.DataFrame(por_cand), formatos={"% das seções do país": "{:.4f}", "% dos votos do candidato": "{:.4f}",
                                             "Aptos, mediana": "{:,.0f}", "Compareceram, mediana": "{:,.0f}"}))

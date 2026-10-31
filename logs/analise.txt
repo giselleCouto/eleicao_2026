@@ -1,1 +1,1 @@
-Nenhum arquivo em ./dados. Rode antes extrair_presidente.py.
+Relatório gravado em /home/runner/work/eleicao_2026/eleicao_2026/resultados/relatorio.md

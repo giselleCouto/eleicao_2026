@@ -1,0 +1,7 @@
+referência: estado/linhas
+respeitam os pisos:
+nacional/colunas
+regiao/colunas
+regiao/linhas
+estado/colunas
+estado/linhas

@@ -1,0 +1,145 @@
+
+== 2022 – 1º turno ==
+  28 arquivos de boletim de urna
+    baixando bweb_1t_AC_051020221321.zip
+    baixando bweb_1t_AL_051020221321.zip
+    baixando bweb_1t_AM_051020221321.zip
+    baixando bweb_1t_AP_051020221321.zip
+    baixando bweb_1t_BA_051020221321.zip
+    baixando bweb_1t_CE_051020221321.zip
+    baixando bweb_1t_DF_051020221321.zip
+    baixando bweb_1t_ES_051020221321.zip
+    baixando bweb_1t_GO_051020221321.zip
+    baixando bweb_1t_MA_051020221321.zip
+    baixando bweb_1t_MG_051020221321.zip
+    baixando bweb_1t_MS_051020221321.zip
+    baixando bweb_1t_MT_051020221321.zip
+    baixando bweb_1t_PA_051020221321.zip
+    baixando bweb_1t_PB_051020221321.zip
+    baixando bweb_1t_PE_051020221321.zip
+    baixando bweb_1t_PI_051020221321.zip
+    baixando bweb_1t_PR_051020221321.zip
+    baixando bweb_1t_RJ_051020221321.zip
+    baixando bweb_1t_RN_051020221321.zip
+    baixando bweb_1t_RO_051020221321.zip
+    baixando bweb_1t_RR_051020221321.zip
+    baixando bweb_1t_RS_051020221321.zip
+    baixando bweb_1t_SC_051020221321.zip
+    baixando bweb_1t_SE_051020221321.zip
+    baixando bweb_1t_SP_051020221321.zip
+    baixando bweb_1t_TO_051020221321.zip
+    baixando bweb_1t_ZZ_051020221321.zip
+  472028 seções gravadas em presidente_2022_1t_secoes.csv.gz
+    baixando votacao_candidato_munzona_2022.zip
+  conferência: diferença total entre boletins e totalização = 0 votos
+
+== 2022 – 2º turno ==
+  28 arquivos de boletim de urna
+    baixando bweb_2t_AC_311020221535.zip
+    baixando bweb_2t_AL_311020221535.zip
+    baixando bweb_2t_AM_311020221535.zip
+    baixando bweb_2t_AP_311020221535.zip
+    baixando bweb_2t_BA_311020221535.zip
+    baixando bweb_2t_CE_311020221535.zip
+    baixando bweb_2t_DF_311020221535.zip
+    baixando bweb_2t_ES_311020221535.zip
+    baixando bweb_2t_GO_311020221535.zip
+    baixando bweb_2t_MA_311020221535.zip
+    baixando bweb_2t_MG_311020221535.zip
+    baixando bweb_2t_MS_311020221535.zip
+    baixando bweb_2t_MT_311020221535.zip
+    baixando bweb_2t_PA_311020221535.zip
+    baixando bweb_2t_PB_311020221535.zip
+    baixando bweb_2t_PE_311020221535.zip
+    baixando bweb_2t_PI_311020221535.zip
+    baixando bweb_2t_PR_311020221535.zip
+    baixando bweb_2t_RJ_311020221535.zip
+    baixando bweb_2t_RN_311020221535.zip
+    baixando bweb_2t_RO_311020221535.zip
+    baixando bweb_2t_RR_311020221535.zip
+    baixando bweb_2t_RS_311020221535.zip
+    baixando bweb_2t_SC_311020221535.zip
+    baixando bweb_2t_SE_311020221535.zip
+    baixando bweb_2t_SP_311020221535.zip
+    baixando bweb_2t_TO_311020221535.zip
+    baixando bweb_2t_ZZ_311020221535.zip
+  472028 seções gravadas em presidente_2022_2t_secoes.csv.gz
+  conferência: diferença total entre boletins e totalização = 0 votos
+
+== 2022 – locais de votação ==
+    baixando eleitorado_local_votacao_2022.zip
+  496856 seções no cadastro de locais
+
+== 2026 – 1º turno ==
+  28 arquivos de boletim de urna
+    baixando bweb_1t_AC_051020261403.zip
+    baixando bweb_1t_AL_051020261403.zip
+    baixando bweb_1t_AM_051020261403.zip
+    baixando bweb_1t_AP_051020261403.zip
+    baixando bweb_1t_BA_051020261403.zip
+    baixando bweb_1t_CE_051020261403.zip
+    baixando bweb_1t_DF_051020261403.zip
+    baixando bweb_1t_ES_051020261403.zip
+    baixando bweb_1t_GO_051020261403.zip
+    baixando bweb_1t_MA_051020261403.zip
+    baixando bweb_1t_MG_051020261403.zip
+    baixando bweb_1t_MS_051020261403.zip
+    baixando bweb_1t_MT_051020261403.zip
+    baixando bweb_1t_PA_051020261403.zip
+    baixando bweb_1t_PB_051020261403.zip
+    baixando bweb_1t_PE_051020261403.zip
+    baixando bweb_1t_PI_051020261403.zip
+    baixando bweb_1t_PR_051020261403.zip
+    baixando bweb_1t_RJ_051020261403.zip
+    baixando bweb_1t_RN_051020261403.zip
+    baixando bweb_1t_RO_051020261403.zip
+    baixando bweb_1t_RR_051020261403.zip
+    baixando bweb_1t_RS_051020261403.zip
+    baixando bweb_1t_SC_051020261403.zip
+    baixando bweb_1t_SE_051020261403.zip
+    baixando bweb_1t_SP_051020261403.zip
+    baixando bweb_1t_TO_051020261403.zip
+    baixando bweb_1t_ZZ_051020261403.zip
+  499206 seções gravadas em presidente_2026_1t_secoes.csv.gz
+    baixando votacao_candidato_munzona_2026.zip
+  conferência: diferença total entre boletins e totalização = 5246 votos
+
+== 2026 – 2º turno ==
+  28 arquivos de boletim de urna
+    baixando bweb_2t_AC_261020260742.zip
+    baixando bweb_2t_AL_261020260742.zip
+    baixando bweb_2t_AM_261020260742.zip
+    baixando bweb_2t_AP_261020260742.zip
+    baixando bweb_2t_BA_261020260742.zip
+    baixando bweb_2t_CE_261020260742.zip
+    baixando bweb_2t_DF_261020260742.zip
+    baixando bweb_2t_ES_261020260742.zip
+    baixando bweb_2t_GO_261020260742.zip
+    baixando bweb_2t_MA_261020260742.zip
+    baixando bweb_2t_MG_261020260742.zip
+    baixando bweb_2t_MS_261020260742.zip
+    baixando bweb_2t_MT_261020260742.zip
+    baixando bweb_2t_PA_261020260742.zip
+    baixando bweb_2t_PB_261020260742.zip
+    baixando bweb_2t_PE_261020260742.zip
+    baixando bweb_2t_PI_261020260742.zip
+    baixando bweb_2t_PR_261020260742.zip
+    baixando bweb_2t_RJ_261020260742.zip
+    baixando bweb_2t_RN_261020260742.zip
+    baixando bweb_2t_RO_261020260742.zip
+    baixando bweb_2t_RR_261020260742.zip
+    baixando bweb_2t_RS_261020260742.zip
+    baixando bweb_2t_SC_261020260742.zip
+    baixando bweb_2t_SE_261020260742.zip
+    baixando bweb_2t_SP_261020260742.zip
+    baixando bweb_2t_TO_261020260742.zip
+    baixando bweb_2t_ZZ_261020260742.zip
+  499205 seções gravadas em presidente_2026_2t_secoes.csv.gz
+  conferência: diferença total entre boletins e totalização = 0 votos
+
+== 2026 – locais de votação ==
+    baixando eleitorado_local_votacao_2026.zip
+  517179 seções no cadastro de locais
+
+Pronto. Arquivos em: /home/runner/work/eleicao_2026/eleicao_2026/dados
+Suba a pasta 'dados' (sem a subpasta _downloads) para o repositório no GitHub.

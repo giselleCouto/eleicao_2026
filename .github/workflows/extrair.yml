@@ -36,7 +36,7 @@ jobs:
       - name: Analisar
         if: always()
         run: |
-          pip install -q pandas numpy
+          pip install -q pandas numpy scipy
           python -u analisar.py 2>&1 | tee logs/analise.txt; exit ${PIPESTATUS[0]}
 
       - name: Gravar resultados no repositório

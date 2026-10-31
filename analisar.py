@@ -5,13 +5,15 @@ Analisa os arquivos gerados por extrair_presidente.py (pasta ./dados) e escreve
 
 Perguntas tratadas:
   1. A soma dos boletins de urna bate com a totalização oficial?
-  2. Comparecimento e abstenção: 2022 x 2026, 1º x 2º turno.
+  2. Resultado, abstenção, brancos e nulos nos quatro turnos; onde a abstenção caiu.
   3. O voto em Flávio Bolsonaro (2026) se distribui como o voto em Jair Bolsonaro (2022)?
-  4. Para onde foram, no 1º turno de 2026, os eleitores de Lula em 2022? (inferência ecológica)
-  5. De onde vieram os votos que Lula ganhou entre o 1º e o 2º turno de 2026? (inferência ecológica)
-  6. Seções em que só um candidato recebeu votos: quantas, de quem, e de que tamanho.
+  4. Entre o 1º e o 2º turno (2022 e 2026): o que os boletins mostram sem modelo e para onde
+     foi cada grupo de eleitores do 1º turno (inferência ecológica, ver transferencias.py).
+  5. De 2022 para 2026 (por município, estimativa mais frágil).
+  6. Seções em que só um candidato recebeu votos: quantas, de quem, de que tamanho, onde,
+     e se as mesmas seções já votavam assim em 2022.
 
-Requer pandas e numpy.
+Requer pandas, numpy e scipy.
 """
 import os
 import sys
@@ -19,10 +21,18 @@ import sys
 import numpy as np
 import pandas as pd
 
+import transferencias as tr
+
 BASE = os.path.dirname(os.path.abspath(__file__))
 DADOS = os.path.join(BASE, "dados")
 OUT = os.path.join(BASE, "resultados")
 os.makedirs(OUT, exist_ok=True)
+
+REGIOES = {"Norte": ["AC", "AM", "AP", "PA", "RO", "RR", "TO"],
+           "Nordeste": ["AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE"],
+           "Centro-Oeste": ["DF", "GO", "MS", "MT"], "Sudeste": ["ES", "MG", "RJ", "SP"],
+           "Sul": ["PR", "RS", "SC"], "Exterior": ["ZZ"]}
+REGIAO = {uf: r for r, ufs in REGIOES.items() for uf in ufs}
 
 relatorio = []
 
@@ -36,6 +46,10 @@ def br(v, fmt="{:,.1f}"):
     if pd.isna(v):
         return ""
     return fmt.format(v).replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def mi(v, sinal=True):
+    return br(v / 1e6, "{:+,.2f}" if sinal else "{:,.2f}") + " mi"
 
 
 def tabela(df, floatfmt="{:,.1f}", formatos=None):
@@ -64,20 +78,11 @@ def carregar(ano, turno):
     df = pd.read_csv(p, sep=";", dtype={"UF": str, "CD_MUNICIPIO": str, "ZONA": str, "SECAO": str,
                                         "LOCAL": str, "AGREGADAS": str, "TIPO_URNA": str, "MUNICIPIO": str})
     cand = pd.read_csv(os.path.join(DADOS, f"candidatos_{ano}_{turno}t.csv"), sep=";", dtype=str)
-    nomes = dict(zip("V_" + cand.NUMERO, cand.NOME))
+    nomes = dict(zip("V_" + cand.NUMERO, cand.NOME.str.title()))
     vcols = [c for c in df.columns if c.startswith("V_")]
     df["VALIDOS"] = df[vcols].sum(axis=1)
     df["BN"] = df.BRANCOS + df.NULOS
     return df, nomes, vcols
-
-
-def achar(nomes, trecho, preferido):
-    if preferido in nomes:
-        return preferido
-    for c, nm in nomes.items():
-        if trecho in nm.upper():
-            return c
-    return None
 
 
 D = {}
@@ -86,20 +91,58 @@ for ano in ("2022", "2026"):
         r = carregar(ano, t)
         if r is not None:
             D[(ano, t)] = r
-if not D:
-    sys.exit("Nenhum arquivo em ./dados. Rode antes extrair_presidente.py.")
+if len(D) < 4:
+    sys.exit("Faltam arquivos em ./dados. Rode antes extrair_presidente.py.")
 
-LULA = {k: achar(v[1], "LULA", "V_13") for k, v in D.items()}
-BOLS = {k: achar(v[1], "BOLSONARO", "V_22") for k, v in D.items()}
+LULA, PL = "V_13", "V_22"
+NOME_PL = {"2022": "Jair Bolsonaro", "2026": "Flávio Bolsonaro"}
+CHAVE = ["UF", "ZONA", "SECAO"]
+
+
+def casar(ano):
+    d1, d2 = D[(ano, 1)][0], D[(ano, 2)][0]
+    return d1.set_index(CHAVE).add_suffix("_1").join(d2.set_index(CHAVE).add_suffix("_2"), how="inner").reset_index()
+
+
+locais = {a: pd.read_csv(os.path.join(DADOS, f"locais_{a}.csv.gz"), sep=";", dtype=str).fillna("")
+          for a in ("2022", "2026") if os.path.exists(os.path.join(DADOS, f"locais_{a}.csv.gz"))}
+
+INDIGENA = ("INDIGEN", "INDÍGEN", "ALDEIA", "POLO BASE", "TERRA INDIG", "TIKUNA", "TICUNA", "TUKUNA",
+            "YANOMAMI", "XAVANTE", "KAYAP", "XIKRIN", "GUARANI", "MUNDURUKU", "TERENA", "MACUXI", "WAPICHANA")
+RURAL = ("ASSENTAMENTO", "QUILOMB", "COMUNIDADE", "POVOADO", "ZONA RURAL", "RIBEIR", "SÍTIO", "SITIO",
+         "FAZENDA", "AGROVILA", "GLEBA", "COLÔNIA", "COLONIA", "RESERVA", "IGARAP", "RIO ")
+T_IND, T_RUR, T_EXT, T_COM = ("Aldeia ou escola indígena", "Assentamento, quilombo ou comunidade rural",
+                              "Exterior", "Escola ou prédio comum")
+
+
+def tipo_local(r):
+    if r.UF == "ZZ":
+        return T_EXT
+    nome = f"{r.get('NM_LOCAL', '')} {r.get('ENDERECO', '')} {r.get('BAIRRO', '')}".upper()
+    if any(k in nome for k in INDIGENA):
+        return T_IND
+    if any(k in nome for k in RURAL):
+        return T_RUR
+    return T_COM
+
+
+def com_local(df, ano):
+    if ano not in locais:
+        return df.assign(NM_LOCAL="", ENDERECO="", BAIRRO="")
+    return df.merge(locais[ano][["UF", "ZONA", "SECAO", "NM_LOCAL", "ENDERECO", "BAIRRO"]], on=CHAVE, how="left") \
+             .fillna({"NM_LOCAL": "", "ENDERECO": "", "BAIRRO": ""})
+
 
 md("# Eleições presidenciais 2022 e 2026 — análise dos boletins de urna")
 md()
-md("Fonte: boletins de urna e totalização oficial publicados pelo TSE no Portal de Dados Abertos. "
-   "Todos os números abaixo foram calculados a partir desses arquivos.")
+md("Fonte: boletins de urna de presidente, totalização oficial e cadastro de locais de votação publicados "
+   "pelo TSE no Portal de Dados Abertos. Todos os números foram calculados a partir desses arquivos. "
+   "Nas seções 4.2, 4.3 e 5 há estimativas estatísticas: o voto é secreto e nenhum dado público diz em "
+   "quem cada pessoa votou.")
 md()
 
 # ---------------------------------------------------------------- 1. conferência
-md("## 1. Soma dos boletins de urna x totalização oficial")
+md("## 1. A soma dos boletins de urna confere com a totalização oficial")
 md()
 md("Cada boletim de urna (BU) é impresso e afixado na seção ao fim da votação e publicado pelo TSE. "
    "Se a soma de todos os BUs é igual ao total oficial, o resultado divulgado é exatamente a soma "
@@ -124,57 +167,110 @@ if linhas:
         c = pd.read_csv(p, sep=";")
         dif = c[c.DIFERENCA != 0].groupby("CANDIDATO").DIFERENCA.sum().sort_values(key=abs, ascending=False)
         if len(dif):
-            partes = "; ".join(f"{nm}: {br(v, '{:+,}')}" for nm, v in dif.items())
-            md(f"**{ano}, {t}º turno:** a diferença se concentra em {len(dif)} candidato(s) — {partes} votos.")
+            partes = "; ".join(f"{nm.title()}: {br(v, '{:+,}')}" for nm, v in dif.items())
+            md(f"**{ano}, {t}º turno:** toda a diferença está em {len(dif)} candidato — {partes} votos. "
+               "Votos dados a quem renunciou ou teve o registro negado continuam no boletim da urna, mas a "
+               "totalização os conta como nulos. Não é erro de contagem.")
             md()
-    md("Quando toda a diferença está num único candidato, a causa é a situação da candidatura, não a "
-       "contagem: votos dados a quem renunciou ou teve o registro negado continuam aparecendo no boletim "
-       "da urna, mas a totalização os considera nulos. O arquivo `conferencia_*.csv` mostra cada UF.")
-else:
-    md("_Arquivos de conferência não encontrados._")
 md()
 
-# ---------------------------------------------------------------- 2. abstenção
-md("## 2. Comparecimento e abstenção")
+# ---------------------------------------------------------------- 2. resultado e abstenção
+md("## 2. Resultado, abstenção, brancos e nulos nos quatro turnos")
 md()
 res = []
 for (ano, t), (df, nomes, vc) in sorted(D.items()):
     ap, co = df.APTOS.sum(), df.COMPARECIMENTO.sum()
-    linha = {"Eleição": f"{ano} – {t}º turno", "Aptos": int(ap), "Comparecimento": int(co),
-             "Abstenção": int(ap - co), "Abstenção %": pct(ap - co, ap),
-             "Brancos+nulos %": pct(df.BN.sum(), co)}
-    for rot, mapa in (("Lula", LULA), ("Bolsonaro (PL)", BOLS)):
-        c = mapa[(ano, t)]
-        linha[f"{rot} votos"] = int(df[c].sum()) if c else 0
-        linha[f"{rot} % válidos"] = pct(df[c].sum(), df.VALIDOS.sum()) if c else float("nan")
-    res.append(linha)
+    res.append({"Eleição": f"{ano} – {t}º turno", "Aptos": int(ap), "Comparecimento": int(co),
+                "Abstenção": int(ap - co), "Abstenção %": pct(ap - co, ap),
+                "Brancos": int(df.BRANCOS.sum()), "Nulos": int(df.NULOS.sum()),
+                "Brancos+nulos %": pct(df.BN.sum(), co),
+                "Lula votos": int(df[LULA].sum()), "Lula % válidos": pct(df[LULA].sum(), df.VALIDOS.sum()),
+                "PL votos": int(df[PL].sum()), "PL % válidos": pct(df[PL].sum(), df.VALIDOS.sum())})
 res = pd.DataFrame(res)
 res.to_csv(os.path.join(OUT, "resumo_nacional.csv"), sep=";", index=False, decimal=",")
-md(tabela(res[["Eleição", "Aptos", "Comparecimento", "Abstenção", "Abstenção %", "Brancos+nulos %"]]))
+md(tabela(res[["Eleição", "Aptos", "Comparecimento", "Abstenção", "Abstenção %", "Brancos", "Nulos", "Brancos+nulos %"]],
+          formatos={"Abstenção %": "{:.2f}", "Brancos+nulos %": "{:.2f}"}))
 md()
-md(tabela(res[["Eleição", "Lula votos", "Lula % válidos", "Bolsonaro (PL) votos", "Bolsonaro (PL) % válidos"]]))
+md(tabela(res[["Eleição", "Lula votos", "Lula % válidos", "PL votos", "PL % válidos"]],
+          formatos={"Lula % válidos": "{:.2f}", "PL % válidos": "{:.2f}"}))
 md()
-md("Na linha do PL: em 2022 o candidato é Jair Bolsonaro; em 2026, Flávio Bolsonaro.")
+md("Na coluna do PL: em 2022 o candidato é Jair Bolsonaro; em 2026, Flávio Bolsonaro.")
 md()
+VAR = {}
 for ano in ("2022", "2026"):
-    r1 = res[res["Eleição"] == f"{ano} – 1º turno"]
-    r2 = res[res["Eleição"] == f"{ano} – 2º turno"]
-    if len(r1) and len(r2):
-        a1, a2 = r1["Abstenção %"].iloc[0], r2["Abstenção %"].iloc[0]
-        q = int(r1["Abstenção"].iloc[0] - r2["Abstenção"].iloc[0])
-        md(f"- **{ano}:** a abstenção foi de {br(a1, '{:.2f}')}% no 1º turno para {br(a2, '{:.2f}')}% no 2º "
-           f"({br(a2 - a1, '{:+.2f}')} ponto percentual; {br(q, '{:,}')} eleitores a menos faltaram).")
+    r1 = res[res["Eleição"] == f"{ano} – 1º turno"].iloc[0]
+    r2 = res[res["Eleição"] == f"{ano} – 2º turno"].iloc[0]
+    VAR[ano] = {"pp": r2["Abstenção %"] - r1["Abstenção %"], "votantes": int(r2.Comparecimento - r1.Comparecimento),
+                "bn": int((r2.Brancos + r2.Nulos) - (r1.Brancos + r1.Nulos)),
+                "lula": int(r2["Lula votos"] - r1["Lula votos"]), "pl": int(r2["PL votos"] - r1["PL votos"]),
+                "m1": int(r1["Lula votos"] - r1["PL votos"]), "m2": int(r2["Lula votos"] - r2["PL votos"])}
+    v = VAR[ano]
+    md(f"- **{ano}:** a abstenção foi de {br(r1['Abstenção %'], '{:.2f}')}% para {br(r2['Abstenção %'], '{:.2f}')}% "
+       f"({br(v['pp'], '{:+.2f}')} ponto percentual): {br(v['votantes'], '{:,}')} eleitores a mais votaram no 2º turno. "
+       f"Brancos e nulos variaram {br(v['bn'], '{:+,}')}.")
+md()
+
+md("### 2.1 Onde a abstenção caiu")
+md()
+reg_rows = []
+for ano in ("2022", "2026"):
+    for t in (1, 2):
+        df = D[(ano, t)][0]
+        g = df.assign(REG=df.UF.map(REGIAO)).groupby("REG")[["APTOS", "COMPARECIMENTO"]].sum()
+        for reg, x in g.iterrows():
+            reg_rows.append({"ano": ano, "t": t, "Região": reg, "aptos": x.APTOS, "comp": x.COMPARECIMENTO})
+rg = pd.DataFrame(reg_rows)
+tab = []
+for reg in REGIOES:
+    linha = {"Região": reg}
+    for ano in ("2022", "2026"):
+        a = rg[(rg.ano == ano) & (rg["Região"] == reg)].set_index("t")
+        linha[f"{ano}: variação (p.p.)"] = pct(a.aptos[2] - a.comp[2], a.aptos[2]) - pct(a.aptos[1] - a.comp[1], a.aptos[1])
+        linha[f"{ano}: votantes a mais"] = int(a.comp[2] - a.comp[1])
+    tab.append(linha)
+tab = pd.DataFrame(tab)
+tab.to_csv(os.path.join(OUT, "abstencao_por_regiao.csv"), sep=";", index=False, decimal=",")
+md("Variação da abstenção do 1º para o 2º turno, por região:")
+md()
+md(tabela(tab, formatos={"2022: variação (p.p.)": "{:+.2f}", "2026: variação (p.p.)": "{:+.2f}"}))
+md()
+
+quint = []
+for ano in ("2022", "2026"):
+    d1, n1, vc1 = D[(ano, 1)]
+    d2 = D[(ano, 2)][0]
+    m1 = d1.groupby(["UF", "CD_MUNICIPIO"]).agg(A=("APTOS", "sum"), C=("COMPARECIMENTO", "sum"),
+                                                 L=(LULA, "sum"), V=("VALIDOS", "sum"))
+    m2 = d2.groupby(["UF", "CD_MUNICIPIO"]).agg(A2=("APTOS", "sum"), C2=("COMPARECIMENTO", "sum"))
+    m = m1.join(m2)
+    m = m[(m.A > 0) & (m.V > 0)]
+    m["q"] = pd.qcut(m.L / m.V, 5, labels=["1 (Lula mais fraco)", "2", "3", "4", "5 (Lula mais forte)"])
+    for q, g in m.groupby("q", observed=True):
+        quint.append({"Ano": ano, "Grupo de municípios": q, "Municípios": len(g),
+                      "Lula no 1º turno %": pct(g.L.sum(), g.V.sum()),
+                      "Variação da abstenção (p.p.)": pct(g.A2.sum() - g.C2.sum(), g.A2.sum()) - pct(g.A.sum() - g.C.sum(), g.A.sum()),
+                      "Votantes a mais": int(g.C2.sum() - g.C.sum())})
+quint = pd.DataFrame(quint)
+quint.to_csv(os.path.join(OUT, "abstencao_por_forca_de_lula.csv"), sep=";", index=False, decimal=",")
+md("Municípios divididos em cinco grupos iguais pela votação de Lula no 1º turno do mesmo ano:")
+md()
+md(tabela(quint, formatos={"Variação da abstenção (p.p.)": "{:+.2f}"}))
+md()
+md("O que os dados mostram: em 2022 a queda da abstenção diminuía à medida que Lula era mais forte, "
+   "chegava a zero no 4º grupo e virava alta só no grupo mais lulista. Em 2026 ela caiu em todos os grupos "
+   "de municípios, um pouco menos nos redutos de Lula, e em todas as regiões menos o Norte (onde subiu nos "
+   "dois anos). Em números absolutos, o Sudeste sozinho teve 1,6 milhão de votantes a mais. Os grupos mais "
+   "lulistas são quase todos do Nordeste, então não dá para separar força de Lula e região. São variações "
+   "líquidas: não mostram quantas pessoas faltaram num turno e votaram no outro. Os boletins mostram onde e "
+   "quanto a abstenção caiu; não mostram por quê.")
 md()
 
 
 # ---------------------------------------------------------------- 3. semelhança geográfica
 def por_municipio(ano, t):
     df, nomes, vc = D[(ano, t)]
-    g = df.groupby(["UF", "CD_MUNICIPIO"]).agg(
-        APTOS=("APTOS", "sum"), COMP=("COMPARECIMENTO", "sum"), BN=("BN", "sum"),
-        VALIDOS=("VALIDOS", "sum"), **{c: (c, "sum") for c in vc})
-    g.attrs["nomes"] = nomes
-    return g
+    return df.groupby(["UF", "CD_MUNICIPIO"]).agg(APTOS=("APTOS", "sum"), VALIDOS=("VALIDOS", "sum"),
+                                                  **{c: (c, "sum") for c in vc})
 
 
 def wcorr(x, y, w):
@@ -183,282 +279,365 @@ def wcorr(x, y, w):
     return cov / np.sqrt(np.average((x - mx) ** 2, weights=w) * np.average((y - my) ** 2, weights=w))
 
 
-md("## 3. O eleitorado de Flávio Bolsonaro (2026) é o mesmo de Jair Bolsonaro (2022)?")
+md("## 3. Flávio Bolsonaro (2026) teve votos nos mesmos lugares que Jair Bolsonaro (2022)")
 md()
-md("Comparação município a município da fatia de votos válidos do candidato do PL. As seções mudam de "
-   "uma eleição para outra, por isso a unidade comum é o município. Correlação ponderada pelo número de "
-   "eleitores: 1 = mesma distribuição geográfica; 0 = nenhuma relação.")
+md("Comparação município a município da fatia de votos válidos do candidato do PL (as seções mudam de "
+   "uma eleição para outra; o município é a unidade comum). Correlação ponderada pelo número de eleitores: "
+   "1 = mesma distribuição geográfica; 0 = nenhuma relação.")
 md()
 sim = []
 for t in (1, 2):
-    if ("2022", t) in D and ("2026", t) in D and BOLS[("2022", t)] and BOLS[("2026", t)]:
-        a, b = por_municipio("2022", t), por_municipio("2026", t)
-        j = a.add_suffix("_22").join(b.add_suffix("_26"), how="inner")
-        j = j[(j.VALIDOS_22 > 0) & (j.VALIDOS_26 > 0)]
-        j["APTOS"] = j.APTOS_26
-        x = 100 * j[BOLS[("2022", t)] + "_22"] / j.VALIDOS_22
-        y = 100 * j[BOLS[("2026", t)] + "_26"] / j.VALIDOS_26
-        r = wcorr(x.values, y.values, j.APTOS.values)
-        dif = y - x
-        sim.append({"Turno": f"{t}º", "Municípios": len(j), "Correlação": r,
-                    "Diferença média (p.p.)": float(np.average(dif, weights=j.APTOS)),
-                    "Municípios onde o PL caiu": int((dif < 0).sum()),
-                    "Municípios onde o PL subiu": int((dif > 0).sum())})
-        pd.DataFrame({"PL_2022_%": x, "PL_2026_%": y, "dif_pp": dif, "APTOS": j.APTOS}).to_csv(
-            os.path.join(OUT, f"pl_2022_x_2026_{t}t_municipios.csv"), sep=";", decimal=",")
-if sim:
-    md(tabela(pd.DataFrame(sim), "{:,.3f}"))
-    md()
-    md("Correlação acima de ~0,9 indica que o voto no PL em 2026 veio, em grande medida, dos mesmos "
-       "lugares que votaram no PL em 2022. A coluna 'diferença média' mostra quanto o partido ganhou ou "
-       "perdeu, em pontos percentuais, no município típico.")
-else:
-    md("_Dados insuficientes._")
-md()
-
-
-# ---------------------------------------------------------------- inferência ecológica
-def goodman(X, Y, w, rotX, rotY):
-    """Regressão sem intercepto de Y (proporções do destino) em X (proporções da origem), ponderada.
-    Retorna a matriz de transferência estimada (linhas = origem, colunas = destino), ajustada para
-    ficar entre 0 e 1 e somar 1 em cada linha."""
-    sw = np.sqrt(w)[:, None]
-    B, *_ = np.linalg.lstsq(X * sw, Y * sw, rcond=None)
-    B = np.clip(B, 0, None)
-    soma = B.sum(axis=1, keepdims=True)
-    B = np.divide(B, soma, out=np.full_like(B, np.nan), where=soma > 0)  # linha sem dados fica em branco
-    return pd.DataFrame(B * 100, index=rotX, columns=rotY)
-
-
-def ajustar(T, origem, destino, iteracoes=500):
-    """Ajuste proporcional iterativo (IPF): parte da matriz estimada e a corrige até que cada linha some
-    o total real do grupo de origem e cada coluna some o total real de destino. Assim as estimativas
-    batem exatamente com os votos contados. Retorna (percentuais, votos)."""
-    N = T.fillna(0).values / 100 * np.asarray(origem, float)[:, None]
-    o, d = np.asarray(origem, float), np.asarray(destino, float) * np.sum(origem) / np.sum(destino)
-    for _ in range(iteracoes):
-        N *= np.divide(o, N.sum(1), out=np.zeros_like(o), where=N.sum(1) > 0)[:, None]
-        N *= np.divide(d, N.sum(0), out=np.zeros_like(d), where=N.sum(0) > 0)[None, :]
-    P = pd.DataFrame(100 * N / o[:, None], index=T.index, columns=T.columns)
-    return P, pd.DataFrame(N, index=T.index, columns=T.columns)
-
-
-
-md("## 4. Para onde foram, no 1º turno de 2026, os eleitores de Lula em 2022?")
-md()
-md("O voto é secreto: não existe dado de *quem* votou em quem. O que dá para fazer é **inferência "
-   "ecológica** — comparar milhares de municípios e estimar, estatisticamente, que fração de cada grupo "
-   "de 2022 vai para cada opção de 2026. É uma estimativa (método de Goodman), não uma contagem. "
-   "Mudanças no eleitorado entre 2022 e 2026 (jovens que entraram, óbitos, mudanças de domicílio) "
-   "também entram no resultado.")
-md()
-if ("2022", 1) in D and ("2026", 1) in D:
-    a, b = por_municipio("2022", 1), por_municipio("2026", 1)
+    a, b = por_municipio("2022", t), por_municipio("2026", t)
     j = a.add_suffix("_22").join(b.add_suffix("_26"), how="inner")
-    j = j[(j.APTOS_22 > 0) & (j.APTOS_26 > 0)]
-
-    def blocos(sfx, vc, lula, pl):
-        sub = pd.DataFrame({
-            "Lula": j[lula + sfx], "PL": j[pl + sfx],
-            "Outros candidatos": j[[c + sfx for c in vc if c not in (lula, pl)]].sum(axis=1),
-            "Brancos/nulos": j["BN" + sfx], "Abstenção": j["APTOS" + sfx] - j["COMP" + sfx]})
-        return sub.div(j["APTOS" + sfx], axis=0)
-
-    X = blocos("_22", D[("2022", 1)][2], LULA[("2022", 1)], BOLS[("2022", 1)])
-    Y = blocos("_26", D[("2026", 1)][2], LULA[("2026", 1)], BOLS[("2026", 1)])
-    T = goodman(X.values, Y.values, j.APTOS_26.values, [f"{c} 2022" for c in X.columns],
-                [f"{c} 2026" for c in Y.columns])
-    T, _ = ajustar(T, X.mul(j.APTOS_22, axis=0).sum().values, Y.mul(j.APTOS_26, axis=0).sum().values)
-    T.to_csv(os.path.join(OUT, "transferencia_2022_1t_para_2026_1t.csv"), sep=";", decimal=",")
-    md("Atenção: entre eleições diferentes o método é frágil. Se a tabela mostrar algo implausível "
-       "(por exemplo, quase todo um eleitorado trocando de lado), isso indica limite do método, não fato.")
-    md()
-    md("Percentual estimado de cada grupo de 2022 (linhas) que foi para cada opção no 1º turno de 2026 (colunas):")
-    md()
-    md(tabela(T.reset_index().rename(columns={"index": "Origem (1º turno 2022)"})))
-    # outros candidatos de 2026 por nome
-    outros26 = [c for c in D[("2026", 1)][2] if c not in (LULA[("2026", 1)], BOLS[("2026", 1)])]
-    if outros26:
-        Y2 = pd.DataFrame({D[("2026", 1)][1][c]: j[c + "_26"] for c in outros26}).div(j.APTOS_26, axis=0)
-        Y2["Lula"], Y2["PL"] = Y["Lula"], Y["PL"]
-        Y2["Brancos/nulos"], Y2["Abstenção"] = Y["Brancos/nulos"], Y["Abstenção"]
-        T2 = goodman(X.values, Y2.values, j.APTOS_26.values, [f"{c} 2022" for c in X.columns], list(Y2.columns))
-        T2, _ = ajustar(T2, X.mul(j.APTOS_22, axis=0).sum().values, Y2.mul(j.APTOS_26, axis=0).sum().values)
-        T2.to_csv(os.path.join(OUT, "transferencia_2022_1t_para_2026_1t_por_candidato.csv"), sep=";", decimal=",")
-        md()
-        md("Detalhe por candidato de 2026 (apenas a linha dos eleitores de Lula em 2022):")
-        md()
-        lin = T2.loc[["Lula 2022"]].T.reset_index()
-        lin.columns = ["Destino no 1º turno de 2026", "% dos eleitores de Lula 2022"]
-        md(tabela(lin.sort_values(lin.columns[1], ascending=False)))
-else:
-    md("_Faltam dados do 1º turno de 2022 ou de 2026._")
+    j = j[(j.VALIDOS_22 > 0) & (j.VALIDOS_26 > 0)]
+    x = 100 * j[PL + "_22"] / j.VALIDOS_22
+    y = 100 * j[PL + "_26"] / j.VALIDOS_26
+    dif = y - x
+    sim.append({"Turno": f"{t}º", "Municípios": len(j), "Correlação": wcorr(x.values, y.values, j.APTOS_26.values),
+                "Variação média do PL (p.p.)": float(np.average(dif, weights=j.APTOS_26)),
+                "Municípios onde o PL subiu": int((dif > 0).sum()), "Municípios onde o PL caiu": int((dif < 0).sum())})
+    pd.DataFrame({"PL_2022_%": x, "PL_2026_%": y, "dif_pp": dif, "APTOS": j.APTOS_26}).to_csv(
+        os.path.join(OUT, f"pl_2022_x_2026_{t}t_municipios.csv"), sep=";", decimal=",")
+md(tabela(pd.DataFrame(sim), formatos={"Correlação": "{:.3f}", "Variação média do PL (p.p.)": "{:+.2f}"}))
 md()
 
-md("## 5. De onde vieram os votos que Lula ganhou entre o 1º e o 2º turno?")
+# ---------------------------------------------------------------- 4. entre turnos
+print("estimando transferências entre turnos...", flush=True)
+TR = {ano: tr.entre_turnos(ano) for ano in ("2022", "2026")}
+
+
+def resumo_transf(t):
+    """Uma linha por grupo de origem: valor central e faixa para cada destino."""
+    linhas = []
+    for o, g in t.groupby("origem", sort=False):
+        g = g.set_index("destino")
+        linha = {"Grupo no 1º turno": o, "Eleitores": int(g.eleitores_origem.iloc[0])}
+        for dst in g.index:
+            c = (g.loc[dst, "pct"] + g.loc[dst, "pct_por_estado"]) / 2
+            lo = min(g.loc[dst, "ic90_min"], g.loc[dst, "pct_por_estado"], g.loc[dst, "pct"])
+            hi = max(g.loc[dst, "ic90_max"], g.loc[dst, "pct_por_estado"], g.loc[dst, "pct"])
+            linha[dst] = (c, lo, hi)
+        linhas.append(linha)
+    return linhas
+
+
+def celula(v):
+    c, lo, hi = v
+    if hi - lo < 0.02:
+        return f"{br(100 * c, '{:.0f}')}%"
+    return f"{br(100 * c, '{:.0f}')}% ({br(100 * lo, '{:.0f}')}–{br(100 * hi, '{:.0f}')})"
+
+
+def efeitos(t, ano):
+    """Efeito de cada grupo na diferença Lula − PL, pelas duas variantes do modelo."""
+    pl = NOME_PL[ano]
+    out = []
+    for o, g in t.groupby("origem", sort=False):
+        n = g.eleitores_origem.iloc[0]
+        g = g.set_index("destino")
+        vals = []
+        for col in ("pct", "pct_por_estado"):
+            L, P = g.loc["Lula", col] * n, g.loc[pl, col] * n
+            vals.append(L - n if o == "Lula" else n - P if o == pl else L - P)
+        out.append({"Grupo no 1º turno": o, "nacional": vals[0], "por_estado": vals[1]})
+    return pd.DataFrame(out)
+
+
+md("## 4. Do 1º para o 2º turno: para onde foi cada eleitor")
 md()
-md("Aqui a comparação é seção a seção (as seções são as mesmas nos dois turnos da mesma eleição), "
-   "o que torna a estimativa bem mais precisa que a do item 4.")
+md(f"Em 2026, Lula ganhou {br(VAR['2026']['lula'], '{:+,}')} votos do 1º para o 2º turno e Flávio "
+   f"{br(VAR['2026']['pl'], '{:+,}')}. A diferença entre os dois foi de {br(VAR['2026']['m1'], '{:+,}')} "
+   f"(Flávio à frente) para {br(VAR['2026']['m2'], '{:+,}')} (Lula à frente): uma virada de "
+   f"{br(VAR['2026']['m2'] - VAR['2026']['m1'], '{:,}')} votos na diferença. Esse número não é o total de "
+   "votos que Lula ganhou; é quanto a diferença entre os dois mudou.")
 md()
+md(f"Em 2022, para comparação, a diferença caiu de {br(VAR['2022']['m1'], '{:+,}')} para "
+   f"{br(VAR['2022']['m2'], '{:+,}')}: Lula ganhou {br(VAR['2022']['lula'], '{:+,}')} votos e Bolsonaro "
+   f"{br(VAR['2022']['pl'], '{:+,}')}.")
+md()
+
+md("### 4.1 O que os boletins mostram sem nenhum modelo")
+md()
+md("Primeiro, de onde vieram os votos novos dos finalistas, em conta exata: os eleitores dos candidatos "
+   "eliminados, os votantes a mais e os brancos e nulos a menos somam o que Lula e o PL ganharam juntos. "
+   "É uma identidade contábil (fecha sempre): ela mostra o tamanho de cada fonte, mas não diz quem foi para "
+   "quem. Os boletins não exigem troca de lado entre eleitores de Flávio e de Lula para explicar a virada, "
+   "nem a excluem.")
+md()
+md(tabela(pd.DataFrame([{"Ano": ano, "Votos dos eliminados no 1º turno": int(D[(ano, 1)][0][[c for c in D[(ano, 1)][2] if c not in (LULA, PL)]].sum().sum()),
+                         "Votantes a mais no 2º turno": VAR[ano]["votantes"], "Brancos e nulos a menos": -VAR[ano]["bn"],
+                         "Ganho de Lula": VAR[ano]["lula"], "Ganho do PL": VAR[ano]["pl"]} for ano in ("2022", "2026")])))
+md()
+md("As seções são as mesmas nos dois turnos de uma eleição. Se numa seção um candidato teve menos votos no "
+   "2º turno do que no 1º, então pelo menos essa quantidade de eleitores que votaram nele no 1º turno não "
+   "votou nele no 2º. Somando as seções, isso dá um mínimo garantido, que qualquer pessoa pode conferir nos "
+   "boletins. O que os boletins não dizem é para onde esses eleitores foram: Lula, branco, nulo ou abstenção.")
+md()
+lim_rows = []
 for ano in ("2022", "2026"):
-    if (ano, 1) in D and (ano, 2) in D:
-        d1, n1, v1 = D[(ano, 1)]
-        d2, n2, v2 = D[(ano, 2)]
-        k = ["UF", "ZONA", "SECAO"]
-        j = d1.set_index(k).add_suffix("_1").join(d2.set_index(k).add_suffix("_2"), how="inner").reset_index()
-        j = j[(j.APTOS_1 > 0) & (j.APTOS_2 > 0)]
-        l1, p1, l2, p2 = LULA[(ano, 1)], BOLS[(ano, 1)], LULA[(ano, 2)], BOLS[(ano, 2)]
-        outros1 = [c for c in v1 if c not in (l1, p1)]
-        validos = d1.VALIDOS.sum()
-        grandes = [c for c in outros1 if d1[c].sum() >= 0.01 * validos]   # eliminados com 1% ou mais
-        pequenos = [c for c in outros1 if c not in grandes]
-        X = pd.DataFrame({"Lula": j[l1 + "_1"], "PL": j[p1 + "_1"],
-                          **{n1[c]: j[c + "_1"] for c in sorted(grandes, key=lambda c: -d1[c].sum())},
-                          "Demais candidatos": j[[c + "_1" for c in pequenos]].sum(axis=1),
-                          "Brancos/nulos": j.BN_1, "Abstenção": j.APTOS_1 - j.COMPARECIMENTO_1})
-        Y = pd.DataFrame({"Lula": j[l2 + "_2"], "PL": j[p2 + "_2"], "Brancos/nulos": j.BN_2,
-                          "Abstenção": j.APTOS_2 - j.COMPARECIMENTO_2})
-        T = goodman(X.div(j.APTOS_1, axis=0).values, Y.div(j.APTOS_2, axis=0).values, j.APTOS_2.values,
-                    [f"{c} (1º turno)" for c in X.columns], [f"{c} (2º turno)" for c in Y.columns])
-        tot = X.sum()
-        T, N = ajustar(T, tot.values, Y.sum().values)
-        T.to_csv(os.path.join(OUT, f"transferencia_{ano}_1t_para_2t.csv"), sep=";", decimal=",")
-        ganho = N["Lula (2º turno)"]
-        ganho_pl = N["PL (2º turno)"]
-        dec = pd.DataFrame({"Grupo no 1º turno": T.index, "Tamanho do grupo": tot.values.astype(int),
-                            "→ Lula %": T["Lula (2º turno)"].values, "→ PL %": T["PL (2º turno)"].values,
-                            "→ Abstenção %": T["Abstenção (2º turno)"].values,
-                            "Votos estimados para Lula": ganho.values.round().astype(int),
-                            "Votos estimados para o PL": ganho_pl.values.round().astype(int)})
-        md(f"### {ano}")
-        md()
-        md(f"Seções casadas entre os turnos: {br(len(j), '{:,}')}")
-        md()
-        md(tabela(dec))
-        md()
-        saldo = (ganho - ganho_pl).values
-        m1 = int(d1[l1].sum() - d1[p1].sum())
-        m2 = int(d2[l2].sum() - d2[p2].sum())
-        md(f"Diferença Lula − PL: {br(m1, '{:+,}')} votos no 1º turno e {br(m2, '{:+,}')} no 2º "
-           f"(variação de {br(m2 - m1, '{:+,}')}). A tabela abaixo reparte essa variação entre os grupos: "
-           "nas duas primeiras linhas, o efeito de eleitores dos finalistas que deixaram de votar neles; "
-           "nas demais, o saldo (votos para Lula menos votos para o PL) de cada grupo que não votou nos "
-           "finalistas no 1º turno.")
-        md()
-        perda = [saldo[0] - tot.iloc[0], saldo[1] + tot.iloc[1]]
-        sal = pd.DataFrame({"Grupo no 1º turno": T.index,
-                            "Efeito na diferença Lula − PL": np.r_[perda, saldo[2:]].round().astype(int)})
-        md(tabela(sal))
-        md()
-        md(f"Soma das linhas: {br(int(round(sal.iloc[:, 1].sum())), '{:+,}')} votos.")
-        md()
-        md(f"Abstenção: {br(pct(X['Abstenção'].sum(), j.APTOS_1.sum()), '{:.2f}')}% no 1º turno → "
-           f"{br(pct(Y['Abstenção'].sum(), j.APTOS_2.sum()), '{:.2f}')}% no 2º turno.")
-        md()
-md("Como ler: a linha 'Abstenção (1º turno)' estima quantos eleitores que faltaram no 1º turno "
-   "votaram no 2º e em quem; as linhas dos candidatos eliminados estimam como se dividiram os seus eleitores. "
-   "As estimativas foram ajustadas para bater exatamente com os votos contados em cada turno. Os percentuais de cada linha somam 100% contando também brancos/nulos no "
-   "2º turno, que não aparecem na tabela. As linhas não são contagens, são estimativas com margem de erro.")
+    lim = pd.read_csv(os.path.join(OUT, f"limites_secoes_{ano}.csv"), sep=";", decimal=",")
+    for r in lim.itertuples():
+        lim_rows.append({"Eleição": ano, "Candidato": r.candidato,
+                         "Seções em que perdeu votos": int(r.secoes_com_queda),
+                         "% das seções": 100 * r.pct_secoes_com_queda,
+                         "Votos perdidos nessas seções": int(r.soma_das_quedas),
+                         "Seções com queda e comparecimento igual ou maior": int(r.secoes_queda_com_comparecimento_igual_ou_maior),
+                         "Votos perdidos nelas": int(r.votos_perdidos_com_comparecimento_igual_ou_maior)})
+lim_tab = pd.DataFrame(lim_rows)
+j26 = casar("2026")
+dPL, dL, dC = j26[PL + "_2"] - j26[PL + "_1"], j26[LULA + "_2"] - j26[LULA + "_1"], j26.COMPARECIMENTO_2 - j26.COMPARECIMENTO_1
+estavel = (dPL < 0) & (dC >= 0)
+
+
+def estrito(de, para):
+    """Mínimo garantido de eleitores que foram de 'de' direto para 'para' (limites de Duncan-Davis)."""
+    lim = j26[de + "_1"] - j26[de + "_2"] - (j26.BRANCOS_2 + j26.NULOS_2) - (j26.APTOS_2 - j26.COMPARECIMENTO_2)
+    return int(lim.clip(lower=0).sum())
+
+
+votos_estaveis = int(-dPL[estavel].sum())
+md(tabela(lim_tab, formatos={"% das seções": "{:.1f}"}))
 md()
+md(f"Em 2026, Flávio teve menos votos no 2º turno em {br(int((dPL < 0).sum()), '{:,}')} seções "
+   f"({br(int(-dPL[dPL < 0].sum()), '{:,}')} votos): pelo menos esse número de eleitores dele no 1º turno não "
+   f"votou nele no 2º. Em {br(int(estavel.sum()), '{:,}')} dessas seções o comparecimento foi igual ou maior "
+   f"({br(votos_estaveis, '{:,}')} votos perdidos), mas isso não prova troca de voto: um eleitor de Flávio "
+   "pode ter faltado e outro, que tinha faltado no 1º turno, ter ido votar em Lula. Pelos boletins, o mínimo "
+   f"matematicamente comprovável de troca direta é de {br(estrito(PL, LULA), '{:,}')} votos de Flávio para Lula "
+   f"e {br(estrito(LULA, PL), '{:,}')} de Lula para Flávio, no país inteiro: os boletins não conseguem medir "
+   "troca de voto em nenhuma direção. Ela só poderia ser medida com pesquisa (painel ou boca de urna).")
+md()
+md("Isso não é novidade de 2026. Em 2022 aconteceu o espelho, e maior: quem perdeu votos em muitas seções "
+   "foi Lula, o finalista que menos cresceu no 2º turno. É o comportamento comum de quem ganha menos votos "
+   "novos entre os turnos.")
+md()
+md("Atenção: nas seções do Acre e do Amazonas com as maiores quedas de Flávio, o comparecimento despencou "
+   "no 2º turno (abstenção maior no Norte), então lá a queda é sobretudo de eleitores que faltaram.")
+md()
+ex = com_local(j26[estavel & (dL > 0)].assign(QUEDA=-dPL[estavel & (dL > 0)]), "2026") \
+    .sort_values("QUEDA", ascending=False).head(10)
+ex_tab = pd.DataFrame({"UF": ex.UF, "Município": ex.MUNICIPIO_1.str.title(), "Zona": ex.ZONA, "Seção": ex.SECAO,
+                       "Local": ex.NM_LOCAL.str.title(),
+                       "Comparecimento 1º → 2º": [f"{a} → {b}" for a, b in zip(ex.COMPARECIMENTO_1, ex.COMPARECIMENTO_2)],
+                       "Flávio 1º → 2º": [f"{a} → {b}" for a, b in zip(ex[PL + "_1"], ex[PL + "_2"])],
+                       "Lula 1º → 2º": [f"{a} → {b}" for a, b in zip(ex[LULA + "_1"], ex[LULA + "_2"])]})
+ex_tab.to_csv(os.path.join(OUT, "exemplos_queda_flavio_2026.csv"), sep=";", index=False, encoding="utf-8-sig")
+md("**Como conferir com os próprios olhos.** Escolha uma seção da lista abaixo (comparecimento estável, "
+   "Flávio caiu, Lula subiu) e abra o boletim de urna do 1º e do 2º turno dela no Portal de Resultados do "
+   "TSE (resultados.tse.jus.br, opção de boletim de urna por UF, município, zona e seção) ou nos arquivos de "
+   "boletim de urna do Portal de Dados Abertos do TSE — os mesmos usados aqui. O boletim também é afixado "
+   "na porta da seção e pode ser conferido com o QR Code impresso nele. O que dá para verificar é a contagem "
+   "de cada seção. Esses exemplos são forte indício de que parte dos eleitores de Flávio mudou de voto, mas "
+   "não prova: o voto é secreto.")
+md()
+md(tabela(ex_tab))
+md()
+
+md("### 4.2 Para onde foi cada grupo do 1º turno (estimativa)")
+md()
+md("Método: inferência ecológica nas ~500 mil seções (regressão de Goodman com cada fração limitada entre "
+   "0% e 100%, ajustada para bater exatamente com os votos contados). Rodamos de duas formas — com o país "
+   "inteiro e estado por estado — e calculamos um intervalo de 90% por reamostragem de municípios. O valor "
+   "mostrado é a média das duas formas; entre parênteses, a faixa que cobre as duas e o intervalo. Faixa "
+   "larga = resultado incerto. Cada linha soma 100%.")
+md()
+for ano in ("2026", "2022"):
+    linhas = resumo_transf(TR[ano])
+    destinos = [k for k in linhas[0] if k not in ("Grupo no 1º turno", "Eleitores")]
+    tab = pd.DataFrame([{"Grupo no 1º turno": l["Grupo no 1º turno"], "Eleitores": l["Eleitores"],
+                         **{f"→ {d}": celula(l[d]) for d in destinos}} for l in linhas])
+    md(f"**{ano}**")
+    md()
+    md(tabela(tab))
+    md()
+
+md("### 4.3 Quanto cada grupo pesou na mudança da diferença")
+md()
+md("Votos para Lula menos votos para o PL vindos de cada grupo do 1º turno. Para os próprios finalistas, "
+   "é o efeito de eleitores que deixaram de votar neles. A soma de cada coluna é a variação real da diferença.")
+md()
+for ano in ("2026", "2022"):
+    e = efeitos(TR[ano], ano)
+    e["Faixa"] = [f"{mi(min(a, b))} a {mi(max(a, b))}" for a, b in zip(e.nacional, e.por_estado)]
+    e["Central"] = [mi((a + b) / 2) for a, b in zip(e.nacional, e.por_estado)]
+    e.to_csv(os.path.join(OUT, f"efeito_na_diferenca_{ano}.csv"), sep=";", index=False, decimal=",")
+    md(f"**{ano}** (variação real da diferença: {br(VAR[ano]['m2'] - VAR[ano]['m1'], '{:+,}')} votos)")
+    md()
+    md(tabela(e[["Grupo no 1º turno", "Central", "Faixa"]]))
+    md()
+
+# ---------------------------------------------------------------- 5. entre eleições
+print("estimando transferências entre eleições...", flush=True)
+E1, E2 = tr.entre_eleicoes(1), tr.entre_eleicoes(2)
+md("## 5. De 2022 para 2026 (estimativa frágil)")
+md()
+md("Entre eleições diferentes as seções mudam, então a comparação é por município (cerca de 5.700) e o "
+   "eleitorado também mudou (jovens que entraram, óbitos, mudanças de cidade). Os resultados variam muito "
+   "conforme o método; só as linhas com faixa estreita merecem ser citadas.")
+md()
+for t, E in ((1, E1), (2, E2)):
+    linhas = resumo_transf(E)
+    destinos = [k for k in linhas[0] if k not in ("Grupo no 1º turno", "Eleitores")]
+    tab = pd.DataFrame([{f"Grupo no {t}º turno de 2022": l["Grupo no 1º turno"], "Eleitores": l["Eleitores"],
+                         **{f"→ {d}": celula(l[d]) for d in destinos}} for l in linhas[:2]])
+    md(f"**{t}º turno de 2022 → {t}º turno de 2026** (só os finalistas, que têm faixas estreitas)")
+    md()
+    md(tabela(tab))
+    md()
 
 # ---------------------------------------------------------------- 6. seções com um só candidato
 md("## 6. Seções em que apenas um candidato recebeu votos")
 md()
-md("Esse padrão aparece em toda eleição e é usado em boatos de fraude. Os dados abaixo mostram três "
-   "coisas: (1) é raríssimo — menos de 0,04% das seções; (2) acontece sobretudo em seções menores que a "
-   "média, e a chance cresce muito quanto menor a seção; (3) quase todas ficam em aldeias indígenas, "
-   "assentamentos, quilombos e comunidades rurais isoladas, onde um grupo pequeno e coeso costuma votar "
-   "do mesmo jeito. Os votos dessas seções somados são uma fração mínima da diferença entre os candidatos.")
-md()
-locais = {}
-for ano in ("2022", "2026"):
-    p = os.path.join(DADOS, f"locais_{ano}.csv.gz")
-    if os.path.exists(p):
-        locais[ano] = pd.read_csv(p, sep=";", dtype=str)
-resumo, todas = [], []
-
-INDIGENA = ("INDIGEN", "INDÍGEN", "ALDEIA", "POLO BASE", "TERRA INDIG", "TIKUNA", "TICUNA", "TUKUNA",
-            "YANOMAMI", "XAVANTE", "KAYAP", "XIKRIN", "GUARANI", "MUNDURUKU", "TERENA", "MACUXI", "WAPICHANA")
-RURAL = ("ASSENTAMENTO", "QUILOMB", "COMUNIDADE", "POVOADO", "ZONA RURAL", "RIBEIR", "SÍTIO", "SITIO",
-         "FAZENDA", "AGROVILA", "GLEBA", "COLÔNIA", "COLONIA", "RESERVA", "IGARAP", "RIO ")
-
-
-def tipo_local(r):
-    if r.UF == "ZZ":
-        return "Exterior"
-    nome = f"{r.get('NM_LOCAL', '')} {r.get('ENDERECO', '')} {r.get('BAIRRO', '')}".upper()
-    if any(k in nome for k in INDIGENA):
-        return "Aldeia / escola indígena"
-    if any(k in nome for k in RURAL):
-        return "Assentamento, quilombo ou comunidade rural"
-    return "Outro (escola ou prédio comum)"
-
+resumo, por_cand, tipos_tab, faixas_tab = [], [], [], []
+SO1 = {}
 for (ano, t), (df, nomes, vc) in sorted(D.items()):
+    nomes = {**nomes, PL: NOME_PL[ano], LULA: "Lula"}
     com_voto = (df[vc] > 0).sum(axis=1)
-    so1 = df[(com_voto == 1) & (df.VALIDOS > 0)].copy()
+    m1 = (com_voto == 1) & (df.VALIDOS > 0)
+    so1 = com_local(df[m1].copy(), ano)
     so1["CANDIDATO"] = so1[vc].idxmax(axis=1).map(nomes)
     so1["VOTOS_CANDIDATO"] = so1[vc].max(axis=1)
-    if ano in locais:
-        so1 = so1.merge(locais[ano][["UF", "ZONA", "SECAO", "NM_LOCAL", "ENDERECO", "BAIRRO"]],
-                        on=["UF", "ZONA", "SECAO"], how="left")
     so1["TIPO_LOCAL"] = so1.apply(tipo_local, axis=1)
-    total = len(df)
+    SO1[(ano, t)] = so1
     ordem = df[vc].sum().sort_values(ascending=False)
-    margem = int(ordem.iloc[0] - ordem.iloc[1])
-    base = {"Eleição": f"{ano} – {t}º turno", "Seções": total, "Seções com 1 só candidato": len(so1),
-            "% das seções": pct(len(so1), total),
-            "Eleitores aptos (mediana) — todas": float(df.APTOS.median()),
-            "Eleitores aptos (mediana) — 1 só candidato": float(so1.APTOS.median()) if len(so1) else float("nan"),
-            "Comparecimento (mediana) — 1 só candidato": float(so1.COMPARECIMENTO.median()) if len(so1) else float("nan"),
-            "Comparecimento (mediana) — todas": float(df.COMPARECIMENTO.median()),
-            "Votos válidos nessas seções": int(so1.VALIDOS.sum()),
-            "Diferença entre 1º e 2º colocados no país": margem}
-    resumo.append(base)
-    for cand, g in so1.groupby("CANDIDATO"):
-        todas.append({"Eleição": f"{ano} – {t}º turno", "Candidato": cand, "Seções": len(g),
-                      "% das seções do país": pct(len(g), total),
-                      "Votos nessas seções": int(g.VOTOS_CANDIDATO.sum()),
-                      "% dos votos do candidato": pct(g.VOTOS_CANDIDATO.sum(), df[g[vc].idxmax(axis=1).iloc[0]].sum()),
-                      "Aptos (mediana)": float(g.APTOS.median()),
-                      "Seções no exterior": int((g.UF == "ZZ").sum())})
-    resumo[-1]["_tipos"] = so1.TIPO_LOCAL.value_counts()
+    rural = so1.TIPO_LOCAL.isin([T_IND, T_RUR]).mean() if len(so1) else np.nan
+    resumo.append({"Eleição": f"{ano} – {t}º turno", "Seções com 1 só candidato": len(so1),
+                   "% das seções": pct(len(so1), len(df)),
+                   "Aptos, mediana (essas seções)": float(so1.APTOS.median()),
+                   "Aptos, mediana (todas)": float(df.APTOS.median()),
+                   "% em aldeias, assentamentos, quilombos ou comunidades rurais": 100 * rural,
+                   "Votos nessas seções": int(so1.VALIDOS.sum()),
+                   "Diferença entre os dois primeiros": int(ordem.iloc[0] - ordem.iloc[1])})
+    for cand in ("Lula", NOME_PL[ano]):
+        g = so1[so1.CANDIDATO == cand]
+        col = LULA if cand == "Lula" else PL
+        por_cand.append({"Eleição": f"{ano} – {t}º turno", "Candidato": cand, "Seções": len(g),
+                         "% das seções do país": pct(len(g), len(df)), "Votos nessas seções": int(g.VOTOS_CANDIDATO.sum()),
+                         "% dos votos do candidato": pct(g.VOTOS_CANDIDATO.sum(), df[col].sum()),
+                         "Aptos, mediana": float(g.APTOS.median()) if len(g) else np.nan,
+                         "Compareceram, mediana": float(g.COMPARECIMENTO.median()) if len(g) else np.nan,
+                         "Em aldeias ou comunidades rurais": int(g.TIPO_LOCAL.isin([T_IND, T_RUR]).sum())})
+    for k, v in so1.TIPO_LOCAL.value_counts().items():
+        tipos_tab.append({"Eleição": f"{ano} – {t}º turno", "Tipo de local": k, "Seções": int(v)})
+    faixas = [0, 50, 100, 200, 300, 400, 10**9]
+    rot = ["até 50", "51 a 100", "101 a 200", "201 a 300", "301 a 400", "mais de 400"]
+    fx = pd.DataFrame({"F": pd.cut(df.APTOS, faixas, labels=rot, include_lowest=True), "S": m1})
+    for f, g in fx.groupby("F", observed=False):
+        faixas_tab.append({"Eleição": f"{ano} – {t}º turno", "Eleitores aptos": f, "Seções": len(g),
+                           "Com 1 só candidato": int(g.S.sum()), "%": pct(g.S.sum(), len(g))})
     so1.drop(columns=vc).to_csv(os.path.join(OUT, f"secoes_um_candidato_{ano}_{t}t.csv"),
                                 sep=";", index=False, encoding="utf-8-sig")
-    # distribuição por faixa de tamanho
-    faixas = [0, 50, 100, 200, 300, 400, 10**9]
-    rot = ["até 50", "51–100", "101–200", "201–300", "301–400", "mais de 400"]
-    df["FAIXA"] = pd.cut(df.APTOS, faixas, labels=rot, include_lowest=True)
-    df["SO1"] = (com_voto == 1) & (df.VALIDOS > 0)
-    fx = df.groupby("FAIXA", observed=False).agg(Secoes=("SO1", "size"), Com_1=("SO1", "sum"))
-    fx["% com 1 só candidato"] = 100 * fx.Com_1 / fx.Secoes
-    fx.reset_index().to_csv(os.path.join(OUT, f"secoes_um_candidato_por_tamanho_{ano}_{t}t.csv"),
-                            sep=";", index=False, decimal=",")
-    resumo[-1]["_faixas"] = fx
+pd.DataFrame(faixas_tab).to_csv(os.path.join(OUT, "secoes_um_candidato_por_tamanho.csv"), sep=";", index=False, decimal=",")
+pd.DataFrame(por_cand).to_csv(os.path.join(OUT, "secoes_um_candidato_por_candidato.csv"), sep=";", index=False, decimal=",")
 
-F6 = {"% das seções": "{:.3f}", "% das seções do país": "{:.4f}", "% dos votos do candidato": "{:.4f}",
-      "Aptos (mediana)": "{:,.0f}"}
-for r in resumo:
-    fx = r.pop("_faixas")
-    tipos = r.pop("_tipos")
-    md(f"### {r['Eleição']}")
+r26 = resumo[3]
+s26 = SO1[("2026", 2)]
+grandes = s26[s26.APTOS >= 300]
+md("**Em resumo:** é raríssimo — de 0,008% a 0,031% das seções, conforme o turno. Acontece para os dois lados "
+   "e nas duas eleições, muito mais para Lula. Entre "
+   f"{br(min(r['% em aldeias, assentamentos, quilombos ou comunidades rurais'] for r in resumo), '{:.0f}')}% e "
+   f"{br(max(r['% em aldeias, assentamentos, quilombos ou comunidades rurais'] for r in resumo), '{:.0f}')}% "
+   "dessas seções ficam em aldeias indígenas, assentamentos, quilombos e comunidades rurais, onde um grupo "
+   "pequeno e coeso tende a votar do mesmo jeito. São seções menores que a média. "
+   f"No 2º turno de 2026, só {len(grandes)} delas tinham 300 eleitores ou mais: "
+   f"{int((grandes.TIPO_LOCAL == T_IND).sum())} em aldeias ou escolas indígenas, "
+   f"{int((grandes.UF == 'AM').sum())} no Amazonas.")
+md()
+lu = s26[s26.CANDIDATO == "Lula"].VOTOS_CANDIDATO.sum()
+fl = s26[s26.CANDIDATO == NOME_PL["2026"]].VOTOS_CANDIDATO.sum()
+md(f"No 2º turno de 2026, essas seções deram a Lula um saldo de {br(int(lu - fl), '{:,}')} votos, "
+   f"{br(pct(lu - fl, VAR['2026']['m2']), '{:.2f}')}% da vantagem final de {br(VAR['2026']['m2'], '{:,}')}. "
+   f"O fenômeno é estável: o 2º turno de 2022 teve mais seções assim ({len(SO1[('2022', 2)])}) do que o de "
+   f"2026 ({len(s26)}).")
+md()
+md("A classificação do local é automática, pelo nome e endereço no cadastro do TSE, e conservadora. As "
+   "seções que ficam de fora são principalmente presídios e unidades de internação (onde votam presos "
+   "provisórios e adolescentes internados), embaixadas e consulados no exterior e algumas aldeias ou "
+   "comunidades que a regra não reconheceu (por exemplo a escola Ingarikó em Uiramutã-RR e a aldeia "
+   "guarani Karai Nhe'e Katu em Viamão-RS). Lendo os nomes um a um, a parcela em aldeias e comunidades "
+   "rurais fica perto de 88% a 98%.")
+md()
+md(tabela(pd.DataFrame(resumo), formatos={"% das seções": "{:.3f}", "Aptos, mediana (essas seções)": "{:,.0f}",
+                                          "Aptos, mediana (todas)": "{:,.0f}",
+                                          "% em aldeias, assentamentos, quilombos ou comunidades rurais": "{:.0f}"}))
+md()
+md("### 6.1 Para cada candidato")
+md()
+md(tabela(pd.DataFrame(por_cand), formatos={"% das seções do país": "{:.4f}", "% dos votos do candidato": "{:.4f}",
+                                            "Aptos, mediana": "{:,.0f}", "Compareceram, mediana": "{:,.0f}"}))
+md()
+ext = SO1[("2022", 2)]
+ext = ext[(ext.UF == "ZZ") & (ext.CANDIDATO == NOME_PL["2022"])]
+if len(ext):
+    md(f"Em 2022, {len(ext)} das seções com 100% para Bolsonaro ficavam no exterior ("
+       + ", ".join(f"{m.title()}: {c} eleitor(es) presente(s) de {a} aptos" for m, c, a in
+                   zip(ext.MUNICIPIO, ext.COMPARECIMENTO, ext.APTOS))
+       + "), por isso a mediana de aptos dele naquele turno é alta; a de quem compareceu é baixa.")
     md()
-    t1 = pd.DataFrame([r]).drop(columns="Eleição")
-    md(tabela(t1.T.reset_index().set_axis(["Indicador", "Valor"], axis=1).assign(
-        Valor=lambda d: [br(v, "{:.3f}" if "%" in i else "{:,.0f}") for i, v in zip(d.Indicador, d.Valor)])))
-    md()
-    md("Tipo de local de votação dessas seções (pelo nome do local no cadastro do TSE):")
-    md()
-    md(tabela(tipos.rename_axis("Tipo de local").reset_index(name="Seções")))
-    md()
-    md("Chance de uma seção ter votos em um só candidato, por tamanho da seção (eleitores aptos):")
-    md()
-    md(tabela(fx.reset_index().rename(columns={"FAIXA": "Tamanho", "Secoes": "Seções", "Com_1": "Com 1 só candidato"})))
-    md()
-if todas:
-    md("### Por candidato")
-    md()
-    md(tabela(pd.DataFrame(todas), "{:,.2f}", F6))
-    md()
+md("### 6.2 É um comportamento comum dessas seções?")
+md()
+# persistência: mesma seção e mesmo local em 2022
+p22 = com_local(D[("2022", 2)][0], "2022")[CHAVE + [LULA, PL, "VALIDOS", "NM_LOCAL"]] \
+    .rename(columns={LULA: "L22", PL: "P22", "VALIDOS": "V22", "NM_LOCAL": "LOC22"})
+m = s26.merge(p22, on=CHAVE, how="inner")
+m = m[m.NM_LOCAL.str.upper().str.strip() == m.LOC22.str.upper().str.strip()]
+pers = []
+for cand, col in (("Lula", "L22"), ("Flávio Bolsonaro", "P22")):
+    g = m[m.CANDIDATO == cand]
+    sh = g[col] / g.V22
+    pers.append({"Candidato com 100% em 2026": cand, "Seções comparáveis com 2022": len(g),
+                 "Deram 90%+ ao mesmo lado em 2022": int((sh >= 0.9).sum()),
+                 "Deram 95%+": int((sh >= 0.95).sum()), "Deram 100%": int((sh >= 0.99999).sum()),
+                 "Mediana em 2022 (%)": 100 * float(sh.median()) if len(g) else np.nan})
+pers = pd.DataFrame(pers)
+pers.to_csv(os.path.join(OUT, "secoes_um_candidato_persistencia.csv"), sep=";", index=False, decimal=",")
+o1 = SO1[("2026", 1)].merge(s26[CHAVE], on=CHAVE)
+md("Sim. Comparando a mesma seção (mesmo número e mesmo local de votação) no 2º turno de 2022:")
+md()
+md(tabela(pers, formatos={"Mediana em 2022 (%)": "{:.1f}"}))
+md()
+md(f"E {len(o1)} das {len(SO1[('2026', 1)])} seções com um só candidato no 1º turno de 2026 repetiram isso no 2º turno. "
+   "Essas comunidades votam de forma quase unânime há pelo menos duas eleições.")
+md()
+quase = []
+for ano in ("2022", "2026"):
+    df = D[(ano, 2)][0]
+    for cand, col in (("Lula", LULA), (NOME_PL[ano], PL)):
+        sh = df[col] / df.VALIDOS
+        for lim in (0.9, 0.95, 1.0):
+            sel = df[(df.VALIDOS > 0) & (sh >= lim - 1e-12)]
+            quase.append({"Ano": ano, "Candidato": cand, "Limite": "100%" if lim == 1.0 else f"{int(lim * 100)}% ou mais",
+                          "Seções": len(sel), "% das seções": pct(len(sel), len(df)),
+                          "UFs com mais seções": ", ".join(f"{u} {n}" for u, n in sel.UF.value_counts().head(4).items())})
+quase = pd.DataFrame(quase)
+quase.to_csv(os.path.join(OUT, "secoes_quase_unanimes.csv"), sep=";", index=False, decimal=",")
+md("Seções quase unânimes no 2º turno existem para os dois lados — as de Lula concentradas no Nordeste e na "
+   "Amazônia, as do PL no Sul (comunidades rurais do RS e de SC) e no Pará. De 2022 para 2026, as seções com "
+   "90% ou mais para Lula diminuíram e as do PL aumentaram, embora a vantagem de Lula tenha crescido: a "
+   "vitória maior de 2026 não veio de mais seções quase unânimes.")
+md()
+md(tabela(quase, formatos={"% das seções": "{:.3f}"}))
+md()
+md("### 6.3 Tamanho e tipo de local")
+md()
+md("Chance de uma seção ter votos em um só candidato, por número de eleitores aptos:")
+md()
+fxp = pd.DataFrame(faixas_tab).pivot(index="Eleitores aptos", columns="Eleição", values="%").reindex(
+    ["até 50", "51 a 100", "101 a 200", "201 a 300", "301 a 400", "mais de 400"]).reset_index()
+md(tabela(fxp, floatfmt="{:.2f}"))
+md()
+md("Tipo de local (pelo nome e endereço no cadastro do TSE; escolas indígenas com nome só no idioma local "
+   "caem em 'escola ou prédio comum', então as aldeias estão subestimadas):")
+md()
+md(tabela(pd.DataFrame(tipos_tab).pivot(index="Tipo de local", columns="Eleição", values="Seções").fillna(0)
+          .astype(int).reset_index()))
+md()
+md(f"As {len(grandes)} seções com 300 ou mais eleitores no 2º turno de 2026:")
+md()
+md(tabela(pd.DataFrame({"UF": grandes.UF, "Município": grandes.MUNICIPIO.str.title(), "Local": grandes.NM_LOCAL.str.title(),
+                        "Tipo": grandes.TIPO_LOCAL, "Candidato": grandes.CANDIDATO, "Votos": grandes.VOTOS_CANDIDATO,
+                        "Aptos": grandes.APTOS}).sort_values("Aptos", ascending=False)))
+md()
 
 with open(os.path.join(OUT, "relatorio.md"), "w", encoding="utf-8") as f:
     f.write("\n".join(relatorio) + "\n")
